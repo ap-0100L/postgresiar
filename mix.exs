@@ -15,16 +15,7 @@ defmodule Postgresiar.MixProject do
       compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps(),
-      releases: [
-        prod: [
-          include_executables_for: [:unix],
-          applications: [
-            runtime_tools: :permanent
-          ],
-          steps: [:assemble, :tar]
-        ]
-      ]
+      deps: deps()
     ]
   end
 
@@ -37,7 +28,7 @@ defmodule Postgresiar.MixProject do
       # TODO: Make it application with genserver
       # applications: [],
       # A list of OTP applications your application depends on which are not included in :deps
-      extra_applications: [:logger, :runtime_tools]
+      # extra_applications: [:logger, :runtime_tools]
     ]
   end
 
@@ -54,8 +45,6 @@ defmodule Postgresiar.MixProject do
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:sibling_app_in_umbrella, in_umbrella: true}
 
-      {:logger_file_backend, "~> 0.0.13"},
-      #
       {:ecto_sql, "~> 3.9.0"},
       {:postgrex, "~> 0.16.5"},
       {:ecto_enum, "~> 1.4"},

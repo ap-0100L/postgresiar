@@ -39,35 +39,39 @@ defmodule Postgresiar.Schema do
       @doc """
 
       """
-      def exec_query!(query, params \\ [], opts \\ [])
+      def exec_query!(query, repo \\ @readonly_repo, params \\ [], opts \\ [])
 
-      def exec_query!(query, params, opts) do
-        @readonly_repo.exec_query!(query, params, opts)
+      def exec_query!(query, repo, params, opts) do
+        # @readonly_repo.exec_query!(query, params, opts)
+        apply(repo, :exec_query!, [query, params, opts])
       end
 
       ###########################################################################
       @doc """
       Get by query
       """
-      def get_by_query!(query, opts \\ [])
+      def get_by_query!(query, repo \\ @readonly_repo, opts \\ [])
 
-      def get_by_query!(query, opts) do
-        @readonly_repo.get_by_query!(query, opts)
+      def get_by_query!(query, repo, opts) do
+        # @readonly_repo.get_by_query!(query, opts)
+        apply(repo, :get_by_query!, [query, opts])
       end
 
       ###########################################################################
       @doc """
       Insert
       """
-      def insert!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
+      def insert!(obj, repo \\ @repo, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
 
-      def insert!(obj, async, rescue_func, rescue_func_args, module) do
+      def insert!(obj, repo, async, rescue_func, rescue_func_args, module) do
         changeset = SelfModule.insert_changeset(%SelfModule{}, obj)
 
         if async do
-          @repo.insert_record_async(changeset, rescue_func, rescue_func_args, module)
+          # @repo.insert_record_async(changeset, rescue_func, rescue_func_args, module)
+          apply(repo, :insert_record_async, [changeset, rescue_func, rescue_func_args, module])
         else
-          @repo.insert_record!(changeset)
+          # @repo.insert_record!(changeset)
+          apply(repo, :insert_record!, [changeset])
         end
       end
 
@@ -75,15 +79,17 @@ defmodule Postgresiar.Schema do
       @doc """
       Update
       """
-      def update!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
+      def update!(obj, repo \\ @repo, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
 
-      def update!(obj, async, rescue_func, rescue_func_args, module) do
+      def update!(obj, repo, async, rescue_func, rescue_func_args, module) do
         changeset = SelfModule.update_changeset(%SelfModule{id: obj.id}, obj)
 
         if async do
-          @repo.update_record_async(changeset, rescue_func, rescue_func_args, module)
+          # @repo.update_record_async(changeset, rescue_func, rescue_func_args, module)
+          apply(repo, :update_record_async, [changeset, rescue_func, rescue_func_args, module])
         else
-          @repo.update_record!(changeset)
+          # @repo.update_record!(changeset)
+          apply(repo, :update_record!, [changeset])
         end
       end
 
