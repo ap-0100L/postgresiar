@@ -102,9 +102,6 @@ defmodule Postgresiar.Repo do
                 ["Error occurred while process operation persistent DB"],
                 reason: reason
               )
-
-            result ->
-              result
           end
 
         {:ok, result}
