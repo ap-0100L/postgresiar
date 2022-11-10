@@ -39,20 +39,21 @@ defmodule Postgresiar.Schema do
       @doc """
 
       """
-      def exec_query!(query, repo \\ @readonly_repo, params \\ [], opts \\ [])
+      def exec_query!(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
 
-      def exec_query!(query, repo, params, opts) do
+      def exec_query!(query, params, opts, repo) do
         # @readonly_repo.exec_query!(query, params, opts)
-        apply(repo, :exec_query!, [query, params, opts])
+        IO.inspect({query, repo, params, opts})
+        apply(repo, :exec_query!, [query, params, opts, repo])
       end
 
       ###########################################################################
       @doc """
       Get by query
       """
-      def get_by_query!(query, repo \\ @readonly_repo, opts \\ [])
+      def get_by_query!(query, opts \\ [], repo \\ @readonly_repo)
 
-      def get_by_query!(query, repo, opts) do
+      def get_by_query!(query, opts, repo) do
         # @readonly_repo.get_by_query!(query, opts)
         apply(repo, :get_by_query!, [query, opts])
       end
@@ -61,9 +62,9 @@ defmodule Postgresiar.Schema do
       @doc """
       Insert
       """
-      def insert!(obj, repo \\ @repo, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
+      def insert!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil, repo \\ @repo)
 
-      def insert!(obj, repo, async, rescue_func, rescue_func_args, module) do
+      def insert!(obj, async, rescue_func, rescue_func_args, module, repo) do
         changeset = SelfModule.insert_changeset(%SelfModule{}, obj)
 
         if async do
@@ -79,9 +80,9 @@ defmodule Postgresiar.Schema do
       @doc """
       Update
       """
-      def update!(obj, repo \\ @repo, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
+      def update!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil, repo \\ @repo)
 
-      def update!(obj, repo, async, rescue_func, rescue_func_args, module) do
+      def update!(obj, async, rescue_func, rescue_func_args, module, repo) do
         changeset = SelfModule.update_changeset(%SelfModule{id: obj.id}, obj)
 
         if async do
