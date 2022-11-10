@@ -37,5 +37,6 @@
     <orderEntry type="library" name="earmark" level="project" />
     <orderEntry type="library" name="inch_ex" level="project" />
     <orderEntry type="library" name="utils" level="project" />
+    <orderEntry type="library" name="ecto_enum" level="project" />
   </component>
 </module>
