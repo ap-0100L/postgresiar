@@ -20,10 +20,12 @@ defmodule Postgresiar.Types.ElixirCode do
   def cast(value) when is_bitstring(value) do
     {:ok, value}
   end
+
   @impl Ecto.Type
   def cast(value) when is_list(value) or (is_map(value) and not is_struct(value)) do
     {:ok, value}
   end
+
   @impl Ecto.Type
   def cast(value) when is_struct(value) do
     value = Map.from_struct(value)
@@ -38,8 +40,20 @@ defmodule Postgresiar.Types.ElixirCode do
   """
   @impl Ecto.Type
   def load(value) when is_bitstring(value) do
-    Utils.string_to_code!(value)
+    result = catch_error!(Utils.string_to_code!(value), false, false)
+
+    value =
+      case result do
+        {:ok, value} ->
+          value
+
+        _ ->
+          value
+      end
+
+    {:ok, value}
   end
+
   @impl Ecto.Type
   def load(_), do: :error
 
@@ -51,15 +65,18 @@ defmodule Postgresiar.Types.ElixirCode do
   def dump(value) when is_bitstring(value) do
     {:ok, value}
   end
+
   @impl Ecto.Type
   def dump(value) when is_list(value) or (is_map(value) and not is_struct(value)) do
     {:ok, "#{inspect(value)}"}
   end
+
   @impl Ecto.Type
   def dump(value) when is_struct(value) do
     value = Map.from_struct(value)
     {:ok, "#{inspect(value)}"}
   end
+
   @impl Ecto.Type
   def dump(_), do: :error
 end
