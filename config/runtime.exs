@@ -1,6 +1,6 @@
 import Config
 
-import ConfigUtils, only: [get_env!: 3, get_env!: 2, get_env!: 1, get_env_name!: 1]
+import ConfigUtils, only: [get_env!: 3, get_env!: 2, get_env_name!: 1]
 
 if config_env() in [:prod, :dev] do
   config :postgresiar,
