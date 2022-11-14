@@ -43,7 +43,6 @@ defmodule Postgresiar.Schema do
 
       def exec_query!(query, params, opts, repo) do
         # @readonly_repo.exec_query!(query, params, opts)
-        IO.inspect({query, repo, params, opts})
         apply(repo, :exec_query!, [query, params, opts, repo])
       end
 
