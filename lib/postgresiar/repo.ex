@@ -118,7 +118,6 @@ defmodule Postgresiar.Repo do
           catch_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
-
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :all, [query, opts])
 
               # SelfModule.all(query, opts)
