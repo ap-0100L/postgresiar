@@ -89,11 +89,11 @@ defmodule Postgresiar.Repo do
             {:ok, %{rows: [result]}} ->
               result
 
-            {:error, _code, %{reason: reason} = _data, _messages} ->
+            {:error, _code, _data, _messages} = e ->
               throw_error!(
                 :CODE_EXEC_QUERY_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
-                reason: reason
+                previous: e
               )
 
             {:error, reason} ->
@@ -130,11 +130,11 @@ defmodule Postgresiar.Repo do
             [] ->
               :CODE_NOTHING_FOUND
 
-            {:error, _code, %{reason: reason} = _data, _messages} ->
+            {:error, _code, _data, _messages} = e ->
               throw_error!(
                 :CODE_GET_BY_QUERY_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
-                reason: reason
+                previous: e
               )
 
             {:error, reason} ->
@@ -173,11 +173,11 @@ defmodule Postgresiar.Repo do
             {:ok, item} ->
               item
 
-            {:error, _code, %{reason: reason} = _data, _messages} ->
+            {:error, _code, _data, _messages} = e ->
               throw_error!(
                 :CODE_INSERT_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
-                reason: reason
+                previous: e
               )
 
             {:error, reason} ->
@@ -237,11 +237,11 @@ defmodule Postgresiar.Repo do
             {:ok, item} ->
               item
 
-            {:error, _code, %{reason: reason} = _data, _messages} ->
+            {:error, _code, _data, _messages} = e ->
               throw_error!(
                 :CODE_UPDATE_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
-                reason: reason
+                previous: e
               )
 
             {:error, reason} ->
