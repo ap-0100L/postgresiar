@@ -22,6 +22,8 @@ defmodule Postgresiar.Schema do
   """
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
+      import Ecto.Query, only: [from: 2, where: 3]
+
       @repo Keyword.fetch!(opts, :repo)
       @readonly_repo Keyword.get(opts, :readonly_repo, @repo)
 
@@ -91,6 +93,47 @@ defmodule Postgresiar.Schema do
           # @repo.update_record!(changeset)
           apply(repo, :update_record!, [changeset])
         end
+      end
+
+      def apply_where_clause(query, filters) do
+        query =
+          Enum.reduce(
+            filters,
+            query,
+            fn {name, op, val}, accum ->
+              case op do
+                "gte" ->
+                  where(accum, [o], field(o, ^name) >= ^val)
+
+                "gt" ->
+                  where(accum, [o], field(o, ^name) > ^val)
+
+                "lt" ->
+                  where(accum, [o], field(o, ^name) < ^val)
+
+                "lte" ->
+                  where(accum, [o], field(o, ^name) <= ^val)
+
+                "eq" ->
+                  where(accum, [o], field(o, ^name) == ^val)
+
+                "ilike" ->
+                  where(accum, [o], ilike(type(field(o, ^name), :string), ^val))
+
+                "like" ->
+                  where(accum, [o], like(type(field(o, ^name), :string), ^val))
+
+                "between" ->
+                  [from | [to | _]] = val
+                  {:ok, from, _} = DateTime.from_iso8601(from)
+                  {:ok, to, _} = DateTime.from_iso8601(to)
+                  accum = where(accum, [o], field(o, ^name) >= ^from)
+                  where(accum, [o], field(o, ^name) <= ^to)
+              end
+            end
+          )
+
+        {:ok, query}
       end
 
       defoverridable PostgresiarSchema
