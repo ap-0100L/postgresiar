@@ -46,5 +46,12 @@
     <orderEntry type="library" name="mariaex" level="project" />
     <orderEntry type="library" name="inch_ex" level="project" />
     <orderEntry type="library" name="ecto_datetime" level="project" />
+    <orderEntry type="library" name="myxql" level="project" />
+    <orderEntry type="library" name="tds" level="project" />
+    <orderEntry type="library" name="benchee" level="project" />
+    <orderEntry type="library" name="benchee_json" level="project" />
+    <orderEntry type="library" name="table" level="project" />
+    <orderEntry type="library" name="mariaex" level="project" />
+    <orderEntry type="library" name="inch_ex" level="project" />
   </component>
 </module>
