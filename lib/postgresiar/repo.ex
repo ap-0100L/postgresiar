@@ -67,7 +67,7 @@ defmodule Postgresiar.Repo do
       def exec_query!(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
 
       def exec_query!(query, params, opts, repo) do
-        # query("select get_channel_part_actions($1, $2, $3, $4)", ["notification_bot", "rest_api_channel_part", "message", "send"])
+        # query("select get_ch_part_actions($1, $2, $3, $4)", ["notification_bot", "rest_api_ch_part", "message", "send"])
 
         result =
           catch_error!(
