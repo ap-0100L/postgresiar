@@ -53,5 +53,11 @@
     <orderEntry type="library" name="table" level="project" />
     <orderEntry type="library" name="mariaex" level="project" />
     <orderEntry type="library" name="inch_ex" level="project" />
+    <orderEntry type="library" name="ecto_enum" level="project" />
+    <orderEntry type="library" name="ecto" level="project" />
+    <orderEntry type="library" name="telemetry" level="project" />
+    <orderEntry type="library" name="db_connection" level="project" />
+    <orderEntry type="library" name="decimal" level="project" />
+    <orderEntry type="library" name="connection" level="project" />
   </component>
 </module>
