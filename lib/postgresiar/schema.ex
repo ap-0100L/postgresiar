@@ -45,7 +45,18 @@ defmodule Postgresiar.Schema do
 
       def exec_query!(query, params, opts, repo) do
         # @readonly_repo.exec_query!(query, params, opts)
-        apply(repo, :exec_query!, [query, params, opts, repo])
+        apply(repo, :exec_query!, [query, params, opts])
+      end
+
+      ##############################################################################
+      @doc """
+
+      """
+      def transaction!(fun_or_multi, opts \\ [], repo \\ @repo)
+
+      def transaction!(fun_or_multi, opts, repo) do
+        # @readonly_repo.exec_query!(query, params, opts)
+        apply(repo, :transaction!, [fun_or_multi, opts])
       end
 
       ###########################################################################
@@ -95,6 +106,10 @@ defmodule Postgresiar.Schema do
         end
       end
 
+      ###########################################################################
+      @doc """
+
+      """
       def apply_where_clause(query, filters) do
         query =
           Enum.reduce(

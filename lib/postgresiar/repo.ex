@@ -64,9 +64,9 @@ defmodule Postgresiar.Repo do
       @doc """
 
       """
-      def exec_query!(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
+      def exec_query!(query, params \\ [], opts \\ [])
 
-      def exec_query!(query, params, opts, repo) do
+      def exec_query!(query, params, opts) do
         # query("select get_ch_part_actions($1, $2, $3, $4)", ["notification_bot", "rest_api_ch_part", "message", "send"])
 
         result =
@@ -101,6 +101,57 @@ defmodule Postgresiar.Repo do
                 :CODE_EXEC_QUERY_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 reason: reason
+              )
+          end
+
+        {:ok, result}
+      end
+
+      ##############################################################################
+      @doc """
+
+      """
+      def transaction!(fun_or_multi, opts \\ [])
+
+      def transaction!(fun_or_multi, opts) do
+
+        result =
+          catch_error!(
+            (
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :transaction, [fun_or_multi, opts])
+
+              # SelfModule.all(query, opts)
+              ),
+            false
+          )
+
+        result =
+          case result do
+
+            {:ok, result} ->
+              result
+
+            {:error, _code, _data, _messages} = e ->
+              throw_error!(
+                :CODE_TRANSACTION_PERSISTENT_DB_CAUGHT_ERROR,
+                ["Error caught while process operation persistent DB"],
+                previous: e
+              )
+
+            {:error, reason} ->
+              throw_error!(
+                :CODE_TRANSACTION_PERSISTENT_DB_ERROR,
+                ["Error occurred while process operation persistent DB"],
+                reason: reason
+              )
+
+            unexpected ->
+              throw_error!(
+                :CODE_TRANSACTION_PERSISTENT_DB_UNEXPECTED_ERROR,
+                ["Error occurred while process operation persistent DB"],
+                reason: unexpected
               )
           end
 

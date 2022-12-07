@@ -22,8 +22,8 @@ defmodule Postgresiar.Types.ElixirCode do
   end
 
   @impl Ecto.Type
-  def cast(value) when is_list(value) or (is_map(value) and not is_struct(value)) do
-    {:ok, value}
+  def cast(value) when not is_struct(value) do
+    {:ok, inspect(value)}
   end
 
   @impl Ecto.Type
@@ -67,7 +67,7 @@ defmodule Postgresiar.Types.ElixirCode do
   end
 
   @impl Ecto.Type
-  def dump(value) when is_list(value) or (is_map(value) and not is_struct(value)) do
+  def dump(value) when not is_struct(value) do
     {:ok, "#{inspect(value)}"}
   end
 
