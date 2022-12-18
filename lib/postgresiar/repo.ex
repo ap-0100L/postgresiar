@@ -70,7 +70,7 @@ defmodule Postgresiar.Repo do
         # query("select get_ch_part_actions($1, $2, $3, $4)", ["notification_bot", "rest_api_ch_part", "message", "send"])
 
         result =
-          catch_error!(
+          UniError.rescue_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
 
@@ -90,14 +90,14 @@ defmodule Postgresiar.Repo do
               result
 
             {:error, _code, _data, _messages} = e ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_EXEC_QUERY_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
                 previous: e
               )
 
             {:error, reason} ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_EXEC_QUERY_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 reason: reason
@@ -116,7 +116,7 @@ defmodule Postgresiar.Repo do
       def transaction!(fun_or_multi, opts) do
 
         result =
-          catch_error!(
+          UniError.rescue_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
 
@@ -134,21 +134,21 @@ defmodule Postgresiar.Repo do
               result
 
             {:error, _code, _data, _messages} = e ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_TRANSACTION_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
                 previous: e
               )
 
             {:error, reason} ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_TRANSACTION_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 reason: reason
               )
 
             unexpected ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_TRANSACTION_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 reason: unexpected
@@ -166,7 +166,7 @@ defmodule Postgresiar.Repo do
 
       def get_by_query!(query, opts) do
         result =
-          catch_error!(
+          UniError.rescue_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :all, [query, opts])
@@ -182,14 +182,14 @@ defmodule Postgresiar.Repo do
               :CODE_NOTHING_FOUND
 
             {:error, _code, _data, _messages} = e ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_GET_BY_QUERY_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
                 previous: e
               )
 
             {:error, reason} ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_GET_BY_QUERY_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 reason: reason
@@ -208,7 +208,7 @@ defmodule Postgresiar.Repo do
       """
       def insert_record!(obj) do
         result =
-          catch_error!(
+          UniError.rescue_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
 
@@ -225,21 +225,21 @@ defmodule Postgresiar.Repo do
               item
 
             {:error, _code, _data, _messages} = e ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_INSERT_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
                 previous: e
               )
 
             {:error, reason} ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_INSERT_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 reason: reason
               )
 
             unexpected ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_INSERT_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Unexpected error occurred while process operation persistent DB"],
                 reason: unexpected
@@ -258,7 +258,7 @@ defmodule Postgresiar.Repo do
       def insert_record_async(obj, rescue_func, rescue_func_args, module) do
         func = fn ->
           # :timer.sleep(20000)
-          catch_error!(SelfModule.insert_record!(obj), true, true, rescue_func, rescue_func_args, module)
+          UniError.rescue_error!(SelfModule.insert_record!(obj), true, true, rescue_func, rescue_func_args, module)
         end
 
         pid = spawn(func)
@@ -272,7 +272,7 @@ defmodule Postgresiar.Repo do
       """
       def update_record!(obj) do
         result =
-          catch_error!(
+          UniError.rescue_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
 
@@ -289,21 +289,21 @@ defmodule Postgresiar.Repo do
               item
 
             {:error, _code, _data, _messages} = e ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_UPDATE_PERSISTENT_DB_CAUGHT_ERROR,
                 ["Error caught while process operation persistent DB"],
                 previous: e
               )
 
             {:error, reason} ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_UPDATE_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 reason: reason
               )
 
             unexpected ->
-              throw_error!(
+              UniError.raise_error!(
                 :CODE_UPDATE_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Unexpected error occurred while process operation persistent DB"],
                 reason: unexpected
@@ -321,7 +321,7 @@ defmodule Postgresiar.Repo do
 
       def update_record_async(obj, rescue_func, rescue_func_args, module) do
         func = fn ->
-          catch_error!(SelfModule.update_record!(obj), true, true, rescue_func, rescue_func_args, module)
+          UniError.rescue_error!(SelfModule.update_record!(obj), true, true, rescue_func, rescue_func_args, module)
         end
 
         pid = spawn(func)

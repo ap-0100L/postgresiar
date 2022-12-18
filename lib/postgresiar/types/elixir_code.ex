@@ -40,7 +40,7 @@ defmodule Postgresiar.Types.ElixirCode do
   """
   @impl Ecto.Type
   def load(value) when is_bitstring(value) do
-    result = catch_error!(Utils.string_to_code!(value), false, false)
+    result = UniError.rescue_error!(Utils.string_to_code!(value), false, false)
 
     value =
       case result do

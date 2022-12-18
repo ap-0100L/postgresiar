@@ -31,7 +31,7 @@ defmodule Postgresiar do
   """
   def build_child_spec_list!(list)
       when not is_list(list),
-      do: throw_error!(:CODE_WRONG_FUNCTION_ARGUMENT_ERROR, ["list cannot be nil; list must be a list"])
+      do: UniError.raise_error!(:CODE_WRONG_FUNCTION_ARGUMENT_ERROR, ["list cannot be nil; list must be a list"])
 
   def build_child_spec_list!(list) do
     Enum.reduce(
