@@ -11,7 +11,7 @@ defmodule Postgresiar do
 
   ##############################################################################
   @doc """
-  Hello world.
+  Hello pong.
 
   ## Examples
 
