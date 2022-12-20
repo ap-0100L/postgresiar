@@ -77,8 +77,7 @@ defmodule Postgresiar.Repo do
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :query, [query, params, opts])
 
               # SelfModule.all(query, opts)
-            ),
-            false
+            )
           )
 
         result =
@@ -89,18 +88,18 @@ defmodule Postgresiar.Repo do
             {:ok, %{rows: [result]}} ->
               result
 
-            {:error, _code, _data, _messages} = e ->
-              UniError.raise_error!(
-                :CODE_EXEC_QUERY_PERSISTENT_DB_CAUGHT_ERROR,
-                ["Error caught while process operation persistent DB"],
-                previous: e
-              )
-
             {:error, reason} ->
               UniError.raise_error!(
                 :CODE_EXEC_QUERY_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
-                reason: reason
+                previous: reason
+              )
+
+            unexpected ->
+              UniError.raise_error!(
+                :CODE_EXEC_QUERY_PERSISTENT_DB_UNEXPECTED_ERROR,
+                ["Error occurred while process operation persistent DB"],
+                previous: unexpected
               )
           end
 
@@ -114,7 +113,6 @@ defmodule Postgresiar.Repo do
       def transaction!(fun_or_multi, opts \\ [])
 
       def transaction!(fun_or_multi, opts) do
-
         result =
           UniError.rescue_error!(
             (
@@ -123,35 +121,26 @@ defmodule Postgresiar.Repo do
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :transaction, [fun_or_multi, opts])
 
               # SelfModule.all(query, opts)
-              ),
-            false
+            )
           )
 
         result =
           case result do
-
             {:ok, result} ->
               result
-
-            {:error, _code, _data, _messages} = e ->
-              UniError.raise_error!(
-                :CODE_TRANSACTION_PERSISTENT_DB_CAUGHT_ERROR,
-                ["Error caught while process operation persistent DB"],
-                previous: e
-              )
 
             {:error, reason} ->
               UniError.raise_error!(
                 :CODE_TRANSACTION_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
-                reason: reason
+                previous: reason
               )
 
             unexpected ->
               UniError.raise_error!(
                 :CODE_TRANSACTION_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Error occurred while process operation persistent DB"],
-                reason: unexpected
+                previous: unexpected
               )
           end
 
@@ -172,8 +161,7 @@ defmodule Postgresiar.Repo do
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :all, [query, opts])
 
               # SelfModule.all(query, opts)
-            ),
-            false
+            )
           )
 
         result =
@@ -181,18 +169,11 @@ defmodule Postgresiar.Repo do
             [] ->
               :CODE_NOTHING_FOUND
 
-            {:error, _code, _data, _messages} = e ->
-              UniError.raise_error!(
-                :CODE_GET_BY_QUERY_PERSISTENT_DB_CAUGHT_ERROR,
-                ["Error caught while process operation persistent DB"],
-                previous: e
-              )
-
             {:error, reason} ->
               UniError.raise_error!(
                 :CODE_GET_BY_QUERY_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
-                reason: reason
+                previous: reason
               )
 
             result ->
@@ -215,8 +196,7 @@ defmodule Postgresiar.Repo do
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :insert, [obj])
 
               # SelfModule.insert(obj)
-            ),
-            false
+            )
           )
 
         result =
@@ -224,25 +204,18 @@ defmodule Postgresiar.Repo do
             {:ok, item} ->
               item
 
-            {:error, _code, _data, _messages} = e ->
-              UniError.raise_error!(
-                :CODE_INSERT_PERSISTENT_DB_CAUGHT_ERROR,
-                ["Error caught while process operation persistent DB"],
-                previous: e
-              )
-
             {:error, reason} ->
               UniError.raise_error!(
                 :CODE_INSERT_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
-                reason: reason
+                previous: reason
               )
 
             unexpected ->
               UniError.raise_error!(
                 :CODE_INSERT_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Unexpected error occurred while process operation persistent DB"],
-                reason: unexpected
+                previous: unexpected
               )
           end
 
@@ -279,8 +252,7 @@ defmodule Postgresiar.Repo do
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :update, [obj])
 
               # SelfModule.update(obj)
-            ),
-            false
+            )
           )
 
         result =
@@ -288,25 +260,18 @@ defmodule Postgresiar.Repo do
             {:ok, item} ->
               item
 
-            {:error, _code, _data, _messages} = e ->
-              UniError.raise_error!(
-                :CODE_UPDATE_PERSISTENT_DB_CAUGHT_ERROR,
-                ["Error caught while process operation persistent DB"],
-                previous: e
-              )
-
             {:error, reason} ->
               UniError.raise_error!(
                 :CODE_UPDATE_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
-                reason: reason
+                previous: reason
               )
 
             unexpected ->
               UniError.raise_error!(
                 :CODE_UPDATE_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Unexpected error occurred while process operation persistent DB"],
-                reason: unexpected
+                previous: unexpected
               )
           end
 
