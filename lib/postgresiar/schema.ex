@@ -109,6 +109,13 @@ defmodule Postgresiar.Schema do
       ###########################################################################
       @doc """
 
+      %{
+        "or" => [{name, op, val}, {name, op, val}, ...],
+        "and" => [{name, op, val}, {name, op, val}, ...],
+
+        "or" => [%{"or" => [...], "and" => [...]}]
+      }
+
       """
       def apply_where_clause(query, filters) do
         query =
@@ -144,6 +151,9 @@ defmodule Postgresiar.Schema do
                   {:ok, to, _} = DateTime.from_iso8601(to)
                   accum = where(accum, [o], field(o, ^name) >= ^from)
                   where(accum, [o], field(o, ^name) <= ^to)
+
+                "in" ->
+                  where(accum, [o], field(o, ^name) in ^val)
               end
             end
           )
