@@ -2,14 +2,14 @@ defmodule Postgresiar.Repo do
   ##############################################################################
   ##############################################################################
   @moduledoc """
-
+  ## Module
   """
 
   use Utils
 
   ##############################################################################
   @doc """
-
+  # Function
   """
   @callback init(context :: any, config :: any) :: term
 
@@ -17,7 +17,7 @@ defmodule Postgresiar.Repo do
 
   ##############################################################################
   @doc """
-
+  # Function
   """
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do

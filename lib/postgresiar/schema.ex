@@ -2,14 +2,14 @@ defmodule Postgresiar.Schema do
   ##############################################################################
   ##############################################################################
   @moduledoc """
-
+  ## Module
   """
 
   use Utils
 
   ##############################################################################
   @doc """
-
+  # Function
   """
   @callback insert_changeset(model :: any, params :: any) :: term
   @callback update_changeset(model :: any, params :: any) :: term
@@ -18,7 +18,7 @@ defmodule Postgresiar.Schema do
 
   ##############################################################################
   @doc """
-
+  # Function
   """
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
