@@ -47,7 +47,7 @@ defmodule Postgresiar do
 
   ##############################################################################
   @doc """
-  # Function
+  ## Function
   """
   def start_children!(list) do
     Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I will try start persistent repos")
@@ -67,7 +67,7 @@ defmodule Postgresiar do
 
   ##############################################################################
   @doc """
-  # Function
+  ## Function
   """
   def info!() do
     # {:ok, api_core_info} = ApiCore.info!()
