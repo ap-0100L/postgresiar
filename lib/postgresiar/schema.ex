@@ -22,7 +22,7 @@ defmodule Postgresiar.Schema do
   """
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
-      import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3]
+      import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3]
       import Ecto.Query.API, only: [fragment: 1]
 
       @logical_operators [:and, :or]
@@ -110,6 +110,10 @@ defmodule Postgresiar.Schema do
         end
       end
 
+      ###########################################################################
+      @doc """
+      ### Macros
+      """
       defmacro where_clause_(logical_operator, query, binding \\ [], expr)
 
       defmacro where_clause_(logical_operator, query, binding, expr) do
@@ -120,7 +124,7 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def apply_where_clause!(query, logical_operator, filters)
+      def simple_where_filter!(query, logical_operator, filters)
           when is_nil(query) or logical_operator not in @logical_operators or not is_list(filters),
           do:
             UniError.raise_error!(
@@ -128,7 +132,7 @@ defmodule Postgresiar.Schema do
               ["query, logical_operator, filters can not be nil; filters must be a list; logical_operator must be one of #{inspect(@logical_operators)}"]
             )
 
-      def apply_where_clause!(query, logical_operator, filters) do
+      def simple_where_filter!(query, logical_operator, filters) do
         query =
           Enum.reduce(
             filters,
@@ -138,35 +142,42 @@ defmodule Postgresiar.Schema do
                 {name, op, val} ->
                   case op do
                     :gte ->
-                      where_clause_(logical_operator, accum, [o], field(o, ^name) >= ^val)
+                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) >= ^val)
 
                     :gt ->
-                      where_clause_(logical_operator, accum, [o], field(o, ^name) > ^val)
+                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) > ^val)
 
                     :lt ->
-                      where_clause_(logical_operator, accum, [o], field(o, ^name) < ^val)
+                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) < ^val)
 
                     :lte ->
-                      where_clause_(logical_operator, accum, [o], field(o, ^name) <= ^val)
+                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) <= ^val)
 
                     :eq ->
-                      where_clause_(logical_operator, accum, [o], field(o, ^name) == ^val)
+                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) == ^val)
 
                     :ilike ->
-                      where_clause_(logical_operator, accum, [o], ilike(type(field(o, ^name), :string), ^val))
+                      where_clause_(logical_operator, accum, [..., o], ilike(type(field(o, ^name), :string), ^val))
 
                     :like ->
-                      where_clause_(logical_operator, accum, [o], like(type(field(o, ^name), :string), ^val))
+                      where_clause_(logical_operator, accum, [..., o], like(type(field(o, ^name), :string), ^val))
 
                     :between ->
+                      {from, to} = val
+                      #{:ok, from, _} = DateTime.from_iso8601(from)
+                      #{:ok, to, _} = DateTime.from_iso8601(to)
+
+                      where_clause_(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
+
+                    :between_dates ->
                       {from, to} = val
                       {:ok, from, _} = DateTime.from_iso8601(from)
                       {:ok, to, _} = DateTime.from_iso8601(to)
 
-                      where_clause_(logical_operator, accum, [o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
+                      where_clause_(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
 
                     :in ->
-                      where_clause_(logical_operator, accum, [o], field(o, ^name) in ^val)
+                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) in ^val)
 
                     _ ->
                       UniError.raise_error!(
@@ -177,7 +188,7 @@ defmodule Postgresiar.Schema do
                   end
 
                 _ ->
-                  {:ok, accum} = apply_where_clause!(accum, filter)
+                  {:ok, accum} = simple_where_filter!(accum, filter)
 
                   accum
               end
@@ -190,7 +201,6 @@ defmodule Postgresiar.Schema do
       ###########################################################################
       @doc """
 
-
       %{
         "or" => [{name, op, val}, {name, op, val}, ...],
         "and" => [{name, op, val}, {name, op, val}, ...],
@@ -199,7 +209,7 @@ defmodule Postgresiar.Schema do
       }
 
       """
-      def apply_where_clause!(query, filters)
+      def simple_where_filter!(query, filters)
           when is_nil(query) or (not is_map(filters) and not is_list(filters)),
           do:
             UniError.raise_error!(
@@ -209,30 +219,72 @@ defmodule Postgresiar.Schema do
               filters: filters
             )
 
-      def apply_where_clause!(query, filters)
+      def simple_where_filter!(query, filters)
           when is_list(filters) do
-        apply_where_clause!(query, :and, filters)
+        simple_where_filter!(query, :and, filters)
       end
 
-      def apply_where_clause!(query, %{or: filters} = f) do
-        {:ok, query} = apply_where_clause!(query, :or, filters)
-        limit = Map.get(f, :limit, nil)
-        offset = Map.get(f, :offset, nil)
-
-        {:ok, query}
+      def simple_where_filter!(query, %{or: filters} = f) do
+        {:ok, query} = simple_where_filter!(query, :or, filters)
       end
 
-      def apply_where_clause!(query, %{and: filters}) do
-        apply_where_clause!(query, :and, filters)
+      def simple_where_filter!(query, %{and: filters}) do
+        simple_where_filter!(query, :and, filters)
       end
 
-      def apply_where_clause!(_query, filters),
+      def simple_where_filter!(_query, filters),
         do:
           UniError.raise_error!(
             :CODE_WRONG_ARGUMENT_COMBINATION_ERROR,
             ["Wrong argument combination"],
             filters: filters
           )
+
+      ###########################################################################
+      @doc """
+      ### Function
+      """
+      def paginate!(query, page, per_page_count)
+          when is_nil(query) or ((not is_nil(page) and not is_integer(page)) or page < 0) or ((not is_nil(per_page_count) and not is_integer(per_page_count)) or per_page_count <= 0),
+          do:
+            UniError.raise_error!(
+              :CODE_WRONG_FUNCTION_ARGUMENT_ERROR,
+              ["query can not be nil; page, per_page_count if not nil must be an integer; page must be greater then 0; per_page_count must be equal or greater then 0"]
+            )
+
+      def paginate!(query, page, per_page_count) do
+        query =
+          if is_nil(page) or is_nil(per_page_count) do
+            query
+          else
+            offset = page * per_page_count
+
+            from(query,
+              limit: ^per_page_count,
+              offset: ^offset
+            )
+          end
+
+        {:ok, query}
+      end
+
+      ###########################################################################
+      @doc """
+      ### Function
+      """
+      def order_by!(query, orders)
+          when is_nil(query) or not is_list(orders),
+          do:
+            UniError.raise_error!(
+              :CODE_WRONG_FUNCTION_ARGUMENT_ERROR,
+              ["query, orders can not be nil; orders must be a list"]
+            )
+
+      def order_by!(query, orders) do
+        query = order_by(query, [..., o], ^orders)
+
+        {:ok, query}
+      end
 
       defoverridable PostgresiarSchema
     end
