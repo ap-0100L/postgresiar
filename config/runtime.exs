@@ -1,19 +1,15 @@
 import Config
 
-import ConfigUtils, only: [get_env!: 3, get_env!: 2, get_env_name!: 1]
-
-import Config
-
 import ConfigUtils, only: [get_env!: 3, get_env!: 2, get_env_name!: 1, in_container!: 0]
 
 in_container = in_container!()
 
 if in_container do
   config :logger,
-         handle_otp_reports: true,
-         backends: [
-           :console
-         ]
+    handle_otp_reports: true,
+    backends: [
+      :console
+    ]
 
   config :logger,
          :console,
@@ -22,12 +18,12 @@ if in_container do
          metadata: :all
 else
   config :logger,
-         handle_otp_reports: true,
-         backends: [
-           :console,
-           {LoggerFileBackend, :info_log},
-           {LoggerFileBackend, :error_log}
-         ]
+    handle_otp_reports: true,
+    backends: [
+      :console,
+      {LoggerFileBackend, :info_log},
+      {LoggerFileBackend, :error_log}
+    ]
 
   config :logger,
          :console,
@@ -57,6 +53,5 @@ if config_env() in [:prod] do
 end
 
 config :postgresiar,
-       remote_node_name_prefixes: get_env!(get_env_name!("POSTGRESIAR_REMOTE_NODE_NAME_PREFIXES"), :list_of_regex),
-       log_config: get_env!(get_env_name!("POSTGRESIAR_LOG_CONFIG"), :boolean, false)
-
+  remote_node_name_prefixes: get_env!(get_env_name!("POSTGRESIAR_REMOTE_NODE_NAME_PREFIXES"), :list_of_regex),
+  log_config: get_env!(get_env_name!("POSTGRESIAR_LOG_CONFIG"), :boolean, false)
