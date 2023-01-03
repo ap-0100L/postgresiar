@@ -43,7 +43,7 @@ defmodule Postgresiar.Schema do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       def exec_query!(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
 
@@ -54,7 +54,7 @@ defmodule Postgresiar.Schema do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       def transaction!(fun_or_multi, opts \\ [], repo \\ @repo)
 
@@ -164,8 +164,8 @@ defmodule Postgresiar.Schema do
 
                     :between ->
                       {from, to} = val
-                      #{:ok, from, _} = DateTime.from_iso8601(from)
-                      #{:ok, to, _} = DateTime.from_iso8601(to)
+                      # {:ok, from, _} = DateTime.from_iso8601(from)
+                      # {:ok, to, _} = DateTime.from_iso8601(to)
 
                       where_clause_(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
 
