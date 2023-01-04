@@ -39,7 +39,7 @@ defmodule Postgresiar.Repo do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       @impl true
       def init(context, config) do
@@ -62,7 +62,7 @@ defmodule Postgresiar.Repo do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       def exec_query!(query, params \\ [], opts \\ [])
 
@@ -82,10 +82,10 @@ defmodule Postgresiar.Repo do
 
         result =
           case result do
-            {:ok, %{rows: [[nil]]}} ->
+            {:ok, %{rows: []}} ->
               :CODE_NOTHING_FOUND
 
-            {:ok, %{rows: [result]}} ->
+            {:ok, %{rows: result}} ->
               result
 
             {:error, reason} ->
@@ -108,7 +108,7 @@ defmodule Postgresiar.Repo do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       def transaction!(fun_or_multi, opts \\ [])
 
@@ -149,7 +149,7 @@ defmodule Postgresiar.Repo do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       def get_by_query!(query, opts \\ [])
 

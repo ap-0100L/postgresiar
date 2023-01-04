@@ -43,7 +43,7 @@ defmodule Postgresiar.Schema do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       def exec_query!(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
 
@@ -54,7 +54,7 @@ defmodule Postgresiar.Schema do
 
       ##############################################################################
       @doc """
-
+      ### Function
       """
       def transaction!(fun_or_multi, opts \\ [], repo \\ @repo)
 
