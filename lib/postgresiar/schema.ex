@@ -224,7 +224,7 @@ defmodule Postgresiar.Schema do
         simple_where_filter!(query, :and, filters)
       end
 
-      def simple_where_filter!(query, %{or: filters} = f) do
+      def simple_where_filter!(query, %{or: filters} = _f) do
         {:ok, query} = simple_where_filter!(query, :or, filters)
       end
 
