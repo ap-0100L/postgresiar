@@ -164,8 +164,8 @@ defmodule Postgresiar.Schema do
 
                     :between ->
                       {from, to} = val
-                      #{:ok, from, _} = DateTime.from_iso8601(from)
-                      #{:ok, to, _} = DateTime.from_iso8601(to)
+                      # {:ok, from, _} = DateTime.from_iso8601(from)
+                      # {:ok, to, _} = DateTime.from_iso8601(to)
 
                       where_clause_(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
 
