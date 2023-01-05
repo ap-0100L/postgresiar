@@ -210,14 +210,18 @@ defmodule Postgresiar.Schema do
 
       """
       def simple_where_filter!(query, filters)
-          when is_nil(query) or (not is_map(filters) and not is_list(filters)),
+          when is_nil(query) or (not is_nil(filters) and not is_map(filters) and not is_list(filters)),
           do:
             UniError.raise_error!(
               :CODE_WRONG_FUNCTION_ARGUMENT_ERROR,
-              ["query, filters can not be nil; filters must be a map or a list"],
+              ["query can not be nil; filters must be nil or a map or a list"],
               query: query,
               filters: filters
             )
+
+      def simple_where_filter!(query, nil) do
+        query
+      end
 
       def simple_where_filter!(query, filters)
           when is_list(filters) do
