@@ -185,6 +185,39 @@ defmodule Postgresiar.Repo do
 
       ##############################################################################
       @doc """
+      ### Function
+      """
+      def preload!(struct_or_structs_or_nil, preloads, opts \\ [])
+
+      def preload!(struct_or_structs_or_nil, preloads, opts) do
+        result =
+          UniError.rescue_error!(
+            (
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :preload, [struct_or_structs_or_nil, preloads, opts])
+
+              # SelfModule.all(query, opts)
+            )
+          )
+
+        result =
+          case result do
+            {:error, reason} ->
+              UniError.raise_error!(
+                :CODE_PRELOAD_PERSISTENT_DB_ERROR,
+                ["Error occurred while process operation persistent DB"],
+                previous: reason
+              )
+
+            result ->
+              result
+          end
+
+        {:ok, result}
+      end
+
+      ##############################################################################
+      @doc """
       Insert
       """
       def insert_record!(obj) do
