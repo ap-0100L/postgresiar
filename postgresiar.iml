@@ -14,6 +14,7 @@
       <excludeFolder url="file://$MODULE_DIR$/doc" />
       <excludeFolder url="file://$MODULE_DIR$/logs" />
     </content>
+    <orderEntry type="jdk" jdkName="Elixir at /usr/lib/elixir" jdkType="Elixir SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="logger_file_backend" level="project" />
     <orderEntry type="library" name="ecto_sql" level="project" />
