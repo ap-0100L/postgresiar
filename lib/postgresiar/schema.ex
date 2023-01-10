@@ -25,6 +25,7 @@ defmodule Postgresiar.Schema do
       import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3]
       import Ecto.Query.API, only: [fragment: 1]
 
+      @filter_operations [:find, :delete]
       @logical_operators [:and, :or]
 
       @repo Keyword.fetch!(opts, :repo)
@@ -283,6 +284,83 @@ defmodule Postgresiar.Schema do
             :CODE_WRONG_ARGUMENT_COMBINATION_ERROR,
             ["Wrong argument combination"],
             filters: filters
+          )
+
+      ###########################################################################
+      @doc """
+      ### Function
+      """
+      def find_filters!(filters, field_name)
+          when (not is_map(filters) and not is_list(filters)) or not is_atom(field_name),
+          do:
+            UniError.raise_error!(
+              :CODE_WRONG_FUNCTION_ARGUMENT_ERROR,
+              ["filters, field_name can not be nil; filters must a map or a list; field_name must be an atom"],
+              filters: filters,
+              field_name: field_name
+            )
+
+      def find_filters!(filters, field_name) do
+        change_filters!(filters, field_name, [], :find)
+      end
+
+      ###########################################################################
+      @doc """
+      ### Function
+      """
+      def change_filters!(filters, field_name, accum, operation)
+          when (not is_map(filters) and not is_list(filters)) or not is_list(accum) or not is_atom(field_name) or operation not in @filter_operations,
+          do:
+            UniError.raise_error!(
+              :CODE_WRONG_FUNCTION_ARGUMENT_ERROR,
+              ["filters, field_name, accum, operation can not be nil; filters must a map or a list; accum must be a list; field_name must be an atom; operation must be one of #{inspect(@filter_operations)}"],
+              filters: filters,
+              accum: accum,
+              operation: operation
+            )
+
+      def change_filters!(filters, field_name, accum, :find)
+          when is_list(filters) do
+        result =
+          Enum.reduce(
+            filters,
+            accum,
+            fn filter, accum2 ->
+              case filter do
+                {name, op, val} ->
+                  if name == field_name do
+                    accum2 ++ [filter]
+                  else
+                    accum2
+                  end
+
+                _ ->
+                  {:ok, accum2} = change_filters!(filter, field_name, accum2, :find)
+
+                  accum2
+              end
+            end
+          )
+
+        {:ok, result}
+      end
+
+      def change_filters!(%{and: filters} = _f, field_name, accum, :find) do
+        change_filters!(filters, field_name, accum, :find)
+      end
+
+      def change_filters!(%{or: filters} = _f, field_name, accum, :find) do
+        change_filters!(filters, field_name, accum, :find)
+      end
+
+      def change_filters!(filters, field_name, _accum, operation),
+        do:
+          UniError.raise_error!(
+            :CODE_WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            filters: filters,
+            field_name: field_name,
+            operation: operation
           )
 
       ###########################################################################
