@@ -25,7 +25,7 @@ defmodule Postgresiar.Schema do
       import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3]
       import Ecto.Query.API, only: [fragment: 1]
 
-      @filter_operations [:find, :delete]
+      @filter_operations [:find, :delete, :replace]
       @logical_operators [:and, :or]
 
       @repo Keyword.fetch!(opts, :repo)
@@ -290,36 +290,47 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def find_filters!(filters, field_name)
-          when (not is_map(filters) and not is_list(filters)) or not is_atom(field_name),
+      def find_filters!(filters, field_opts)
+          when (not is_map(filters) and not is_list(filters)) or (not is_atom(field_opts) and not is_tuple(field_opts)),
           do:
             UniError.raise_error!(
               :CODE_WRONG_FUNCTION_ARGUMENT_ERROR,
-              ["filters, field_name can not be nil; filters must a map or a list; field_name must be an atom"],
+              ["filters, field_opts, accum, operation can not be nil; filters must a map or a list; field_opts must be an atom or a tuple"],
               filters: filters,
-              field_name: field_name
+              field_opts: field_opts
             )
 
-      def find_filters!(filters, field_name) do
-        change_filters!(filters, field_name, [], :find)
+      def find_filters!(filters, field_opts) do
+        change_filters!(filters, field_opts, [], :find)
+      end
+
+      def replace_filters!(filters, field_opts) do
+        change_filters!(filters, field_opts, [], :replace)
+      end
+
+      def delete_filters!(filters, field_opts) do
+        change_filters!(filters, field_opts, [], :delete)
       end
 
       ###########################################################################
       @doc """
       ### Function
       """
-      def change_filters!(filters, field_name, accum, operation)
-          when (not is_map(filters) and not is_list(filters)) or not is_list(accum) or not is_atom(field_name) or operation not in @filter_operations,
+      def change_filters!(filters, field_opts, accum, operation)
+          when (not is_map(filters) and not is_list(filters)) or not is_list(accum) or (not is_atom(field_opts) and not is_tuple(field_opts)) or operation not in @filter_operations,
           do:
             UniError.raise_error!(
               :CODE_WRONG_FUNCTION_ARGUMENT_ERROR,
-              ["filters, field_name, accum, operation can not be nil; filters must a map or a list; accum must be a list; field_name must be an atom; operation must be one of #{inspect(@filter_operations)}"],
+              ["filters, field_opts, accum, operation can not be nil; filters must a map or a list; accum must be a list; field_opts must be an atom or a tuple; operation must be one of #{inspect(@filter_operations)}"],
               filters: filters,
+              field_opts: field_opts,
               accum: accum,
               operation: operation
             )
 
-      def change_filters!(filters, field_name, accum, :find)
+      ###########################################################################
+      # Find
+      def change_filters!(filters, field_opts, accum, :find)
           when is_list(filters) do
         result =
           Enum.reduce(
@@ -328,14 +339,14 @@ defmodule Postgresiar.Schema do
             fn filter, accum2 ->
               case filter do
                 {name, op, val} ->
-                  if name == field_name do
+                  if name == field_opts do
                     accum2 ++ [filter]
                   else
                     accum2
                   end
 
                 _ ->
-                  {:ok, accum2} = change_filters!(filter, field_name, accum2, :find)
+                  {:ok, accum2} = change_filters!(filter, field_opts, accum2, :find)
 
                   accum2
               end
@@ -345,23 +356,133 @@ defmodule Postgresiar.Schema do
         {:ok, result}
       end
 
-      def change_filters!(%{and: filters} = _f, field_name, accum, :find) do
-        change_filters!(filters, field_name, accum, :find)
+      def change_filters!(%{and: filters} = _f, field_opts, accum, :find) do
+        change_filters!(filters, field_opts, accum, :find)
       end
 
-      def change_filters!(%{or: filters} = _f, field_name, accum, :find) do
-        change_filters!(filters, field_name, accum, :find)
+      def change_filters!(%{or: filters} = _f, field_opts, accum, :find) do
+        change_filters!(filters, field_opts, accum, :find)
       end
 
-      def change_filters!(filters, field_name, _accum, operation),
-        do:
-          UniError.raise_error!(
-            :CODE_WRONG_ARGUMENT_COMBINATION_ERROR,
-            ["Wrong argument combination"],
-            filters: filters,
-            field_name: field_name,
-            operation: operation
+      ###########################################################################
+      # replace
+      def change_filters!(filters, {field_name, _op, _val} = field_opts, _accum, :replace)
+          when is_list(filters) do
+        IO.inspect(:list, label: "in list")
+
+        result =
+          Enum.reduce(
+            filters,
+            [],
+            fn filter, accum2 ->
+              case filter do
+                {name, _op, _val} ->
+                  IO.inspect(filter, label: "filter")
+
+                  if name == field_name do
+                    accum2 ++ [field_opts]
+                  else
+                    accum2 ++ [filter]
+                  end
+
+                _ ->
+                  {:ok, filters} = change_filters!(filter, field_opts, accum2, :replace)
+
+                  filters =
+                    if is_list(filters) do
+                      filters
+                    else
+                      [filters]
+                    end
+
+                  accum2 ++ filters
+              end
+            end
           )
+
+        {:ok, result}
+      end
+
+      def change_filters!(%{and: filters} = _f, field_opts, accum, :replace) do
+        IO.inspect(:and, label: "in and")
+
+        {:ok, filters} = change_filters!(filters, field_opts, accum, :replace)
+
+        {:ok, %{and: filters}}
+      end
+
+      def change_filters!(%{or: filters} = _f, field_opts, accum, :replace) do
+        IO.inspect(:or, label: "in or")
+
+        {:ok, filters} = change_filters!(filters, field_opts, accum, :replace)
+
+        {:ok, %{or: filters}}
+      end
+
+      ###########################################################################
+      # delete
+      def change_filters!(filters, field_opts, _accum, :delete)
+          when is_list(filters) and is_atom(field_opts) do
+        IO.inspect(:list, label: "in list")
+
+        result =
+          Enum.reduce(
+            filters,
+            [],
+            fn filter, accum2 ->
+              case filter do
+                {name, _op, _val} ->
+                  IO.inspect(filter, label: "filter")
+
+                  if name == field_opts do
+                    accum2
+                  else
+                    accum2 ++ [filter]
+                  end
+
+                _ ->
+                  {:ok, filters} = change_filters!(filter, field_opts, accum2, :delete)
+
+                  filters =
+                    if is_list(filters) do
+                      filters
+                    else
+                      [filters]
+                    end
+
+                  accum2 ++ filters
+              end
+            end
+          )
+
+        {:ok, result}
+      end
+
+      def change_filters!(%{and: filters} = _f, field_opts, accum, :delete) do
+        IO.inspect(:and, label: "in and")
+
+        {:ok, filters} = change_filters!(filters, field_opts, accum, :delete)
+
+        {:ok, %{and: filters}}
+      end
+
+      def change_filters!(%{or: filters} = _f, field_opts, accum, :delete) do
+        IO.inspect(:or, label: "in or")
+
+        {:ok, filters} = change_filters!(filters, field_opts, accum, :delete)
+
+        {:ok, %{or: filters}}
+      end
+
+      def change_filters!(filters, field_opts, _accum, operation),
+          do:
+            UniError.raise_error!(
+              :CODE_WRONG_ARGUMENT_COMBINATION_ERROR,
+              ["Wrong argument combination"],
+              filters: filters,
+              field_opts: field_opts,
+              operation: operation
+            )
 
       ###########################################################################
       @doc """
