@@ -85,6 +85,12 @@ defmodule Postgresiar.Repo do
             {:ok, %{rows: []}} ->
               :CODE_NOTHING_FOUND
 
+            {:ok, %{rows: [[]]}} ->
+              :CODE_NOTHING_FOUND
+
+            {:ok, %{rows: [[nil]]}} ->
+              :CODE_NOTHING_FOUND
+
             {:ok, %{rows: result}} ->
               result
 
@@ -102,6 +108,8 @@ defmodule Postgresiar.Repo do
                 previous: unexpected
               )
           end
+
+        IO.inspect(result, label: "[result]")
 
         {:ok, result}
       end
