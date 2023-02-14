@@ -109,8 +109,6 @@ defmodule Postgresiar.Repo do
               )
           end
 
-        IO.inspect(result, label: "[result]")
-
         {:ok, result}
       end
 
