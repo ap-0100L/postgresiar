@@ -107,5 +107,8 @@
     <orderEntry type="library" name="ecto_sql" level="project" />
     <orderEntry type="library" name="postgrex" level="project" />
     <orderEntry type="library" name="ecto_enum" level="project" />
+    <orderEntry type="library" name="ecto_sql" level="project" />
+    <orderEntry type="library" name="postgrex" level="project" />
+    <orderEntry type="library" name="ecto_enum" level="project" />
   </component>
 </module>
