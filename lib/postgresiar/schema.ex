@@ -76,11 +76,11 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def exec_query!(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
+      def exec_query(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
 
-      def exec_query!(query, params, opts, repo) do
-        # @readonly_repo.exec_query!(query, params, opts)
-        apply(repo, :exec_query!, [query, params, opts])
+      def exec_query(query, params, opts, repo) do
+        # @readonly_repo.exec_query(query, params, opts)
+        apply(repo, :exec_query, [query, params, opts])
       end
 
       ##############################################################################
@@ -90,7 +90,7 @@ defmodule Postgresiar.Schema do
       def transaction!(fun_or_multi, opts \\ [], repo \\ @repo)
 
       def transaction!(fun_or_multi, opts, repo) do
-        # @readonly_repo.exec_query!(query, params, opts)
+        # @readonly_repo.exec_query(query, params, opts)
         apply(repo, :transaction!, [fun_or_multi, opts])
       end
 
