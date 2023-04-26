@@ -43,7 +43,7 @@ defmodule Postgresiar.Repo do
       """
       @impl true
       def init(context, config) do
-        {:ok, log_config} = Utils.get_app_env!(:postgresiar, :log_config)
+        {:ok, log_config} = Utils.get_app_env(:postgresiar, :log_config)
 
         if log_config do
           Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I completed #{__MODULE__} init part, context: #{inspect(context)}, config: #{inspect(config)}")
@@ -72,7 +72,7 @@ defmodule Postgresiar.Repo do
         result =
           UniError.rescue_error!(
             (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :query, [query, params, opts])
 
@@ -122,7 +122,7 @@ defmodule Postgresiar.Repo do
         result =
           UniError.rescue_error!(
             (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :transaction, [fun_or_multi, opts])
 
@@ -163,7 +163,7 @@ defmodule Postgresiar.Repo do
         result =
           UniError.rescue_error!(
             (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :all, [query, opts])
 
               # SelfModule.all(query, opts)
@@ -199,7 +199,7 @@ defmodule Postgresiar.Repo do
         result =
           UniError.rescue_error!(
             (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :preload, [struct_or_structs_or_nil, preloads, opts])
 
               # SelfModule.all(query, opts)
@@ -230,7 +230,7 @@ defmodule Postgresiar.Repo do
         result =
           UniError.rescue_error!(
             (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :insert, [obj])
 
@@ -286,7 +286,7 @@ defmodule Postgresiar.Repo do
         result =
           UniError.rescue_error!(
             (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env!(:postgresiar, :remote_node_name_prefixes)
+              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
               RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :update, [obj])
 
