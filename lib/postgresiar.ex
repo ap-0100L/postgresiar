@@ -13,7 +13,7 @@ defmodule Postgresiar do
   @doc """
   Hello pong.
 
-  ## Examples
+  #### Examples
 
       iex> Postgresiar.ping()
       :pong
