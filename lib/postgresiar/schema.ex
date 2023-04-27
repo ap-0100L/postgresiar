@@ -156,9 +156,9 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Macros
       """
-      defmacro where_clause_(logical_operator, query, binding \\ [], expr)
+      defmacro where_clause(logical_operator, query, binding \\ [], expr)
 
-      defmacro where_clause_(logical_operator, query, binding, expr) do
+      defmacro where_clause(logical_operator, query, binding, expr) do
         Builder.Filter.build(:where, logical_operator, query, binding, expr, __CALLER__)
       end
 
@@ -184,42 +184,42 @@ defmodule Postgresiar.Schema do
                 {name, op, val} ->
                   case op do
                     :gte ->
-                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) >= ^val)
+                      where_clause(logical_operator, accum, [..., o], field(o, ^name) >= ^val)
 
                     :gt ->
-                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) > ^val)
+                      where_clause(logical_operator, accum, [..., o], field(o, ^name) > ^val)
 
                     :lt ->
-                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) < ^val)
+                      where_clause(logical_operator, accum, [..., o], field(o, ^name) < ^val)
 
                     :lte ->
-                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) <= ^val)
+                      where_clause(logical_operator, accum, [..., o], field(o, ^name) <= ^val)
 
                     :eq ->
-                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) == ^val)
+                      where_clause(logical_operator, accum, [..., o], field(o, ^name) == ^val)
 
                     :ilike ->
-                      where_clause_(logical_operator, accum, [..., o], ilike(type(field(o, ^name), :string), ^val))
+                      where_clause(logical_operator, accum, [..., o], ilike(type(field(o, ^name), :string), ^val))
 
                     :like ->
-                      where_clause_(logical_operator, accum, [..., o], like(type(field(o, ^name), :string), ^val))
+                      where_clause(logical_operator, accum, [..., o], like(type(field(o, ^name), :string), ^val))
 
                     :between ->
                       {from, to} = val
                       # {:ok, from, _} = DateTime.from_iso8601(from)
                       # {:ok, to, _} = DateTime.from_iso8601(to)
 
-                      where_clause_(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
+                      where_clause(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
 
                     :between_dates ->
                       {from, to} = val
                       {:ok, from, _} = DateTime.from_iso8601(from)
                       {:ok, to, _} = DateTime.from_iso8601(to)
 
-                      where_clause_(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
+                      where_clause(logical_operator, accum, [..., o], fragment("? between ? and ?", field(o, ^name), ^from, ^to))
 
                     :in ->
-                      where_clause_(logical_operator, accum, [..., o], field(o, ^name) in ^val)
+                      where_clause(logical_operator, accum, [..., o], field(o, ^name) in ^val)
 
                     _ ->
                       UniError.raise_error!(
