@@ -33,7 +33,6 @@ defmodule Postgresiar.Repo do
 
       alias Utils, as: Utils
       alias Postgresiar.Repo, as: PostgresiarRepo
-      alias __MODULE__, as: SelfModule
 
       @behaviour PostgresiarRepo
 
@@ -74,9 +73,9 @@ defmodule Postgresiar.Repo do
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :query, [query, params, opts])
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :query, [query, params, opts])
 
-              # SelfModule.all(query, opts)
+              # __MODULE__.all(query, opts)
             )
           )
 
@@ -124,9 +123,9 @@ defmodule Postgresiar.Repo do
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :transaction, [fun_or_multi, opts])
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :transaction, [fun_or_multi, opts])
 
-              # SelfModule.all(query, opts)
+              # __MODULE__.all(query, opts)
             )
           )
 
@@ -164,9 +163,9 @@ defmodule Postgresiar.Repo do
           UniError.rescue_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :all, [query, opts])
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :all, [query, opts])
 
-              # SelfModule.all(query, opts)
+              # __MODULE__.all(query, opts)
             )
           )
 
@@ -200,9 +199,9 @@ defmodule Postgresiar.Repo do
           UniError.rescue_error!(
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :preload, [struct_or_structs_or_nil, preloads, opts])
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
 
-              # SelfModule.all(query, opts)
+              # __MODULE__.all(query, opts)
             )
           )
 
@@ -232,9 +231,9 @@ defmodule Postgresiar.Repo do
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :insert, [obj])
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :insert, [obj])
 
-              # SelfModule.insert(obj)
+              # __MODULE__.insert(obj)
             )
           )
 
@@ -270,7 +269,14 @@ defmodule Postgresiar.Repo do
       def insert_record_async(obj, rescue_func, rescue_func_args, module) do
         func = fn ->
           # :timer.sleep(20000)
-          UniError.rescue_error!(SelfModule.insert_record!(obj), true, true, rescue_func, rescue_func_args, module)
+          {reraise, log_error} =
+            if is_nil(rescue_func) do
+              {true, true}
+            else
+              {false, false}
+            end
+
+          UniError.rescue_error!(__MODULE__.insert_record!(obj), reraise, log_error, rescue_func, rescue_func_args, module)
         end
 
         pid = spawn(func)
@@ -288,9 +294,9 @@ defmodule Postgresiar.Repo do
             (
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, SelfModule, :update, [obj])
+              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :update, [obj])
 
-              # SelfModule.update(obj)
+              # __MODULE__.update(obj)
             )
           )
 
@@ -325,7 +331,14 @@ defmodule Postgresiar.Repo do
 
       def update_record_async(obj, rescue_func, rescue_func_args, module) do
         func = fn ->
-          UniError.rescue_error!(SelfModule.update_record!(obj), true, true, rescue_func, rescue_func_args, module)
+          {reraise, log_error} =
+            if is_nil(rescue_func) do
+              {true, true}
+            else
+              {false, false}
+            end
+
+          UniError.rescue_error!(__MODULE__.update_record!(obj), reraise, log_error, rescue_func, rescue_func_args, module)
         end
 
         pid = spawn(func)

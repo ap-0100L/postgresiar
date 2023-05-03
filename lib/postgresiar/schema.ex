@@ -38,8 +38,6 @@ defmodule Postgresiar.Schema do
       alias Utils, as: Utils
       alias Postgresiar.Schema, as: PostgresiarSchema
 
-      alias __MODULE__, as: SelfModule
-
       @behaviour PostgresiarSchema
 
       ##############################################################################
@@ -123,7 +121,7 @@ defmodule Postgresiar.Schema do
       def insert!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil, repo \\ @repo)
 
       def insert!(obj, async, rescue_func, rescue_func_args, module, repo) do
-        changeset = SelfModule.insert_changeset(%SelfModule{}, obj)
+        changeset = __MODULE__.insert_changeset(%__MODULE__{}, obj)
 
         if async do
           # @repo.insert_record_async(changeset, rescue_func, rescue_func_args, module)
@@ -141,7 +139,7 @@ defmodule Postgresiar.Schema do
       def update!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil, repo \\ @repo)
 
       def update!(obj, async, rescue_func, rescue_func_args, module, repo) do
-        changeset = SelfModule.update_changeset(%SelfModule{id: obj.id}, obj)
+        changeset = __MODULE__.update_changeset(%__MODULE__{id: obj.id}, obj)
 
         if async do
           # @repo.update_record_async(changeset, rescue_func, rescue_func_args, module)
