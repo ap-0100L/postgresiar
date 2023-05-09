@@ -44,36 +44,6 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def get_repo!() do
-        if is_nil(@repo) do
-          UniError.raise_error!(
-            :CODE_REPO_IS_NIL_ERROR,
-            ["Repo is nil"]
-          )
-        else
-          {:ok, @repo}
-        end
-      end
-
-      ##############################################################################
-      @doc """
-      ### Function
-      """
-      def get_readonly_repo!() do
-        if is_nil(@repo) do
-          UniError.raise_error!(
-            :CODE_READONLY_REPO_IS_NIL_ERROR,
-            ["Readonly repo is nil"]
-          )
-        else
-          {:ok, @readonly_repo}
-        end
-      end
-
-      ##############################################################################
-      @doc """
-      ### Function
-      """
       def exec_query(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
 
       def exec_query(query, params, opts, repo) do
@@ -96,11 +66,11 @@ defmodule Postgresiar.Schema do
       @doc """
       Get by query
       """
-      def get_by_query!(query, opts \\ [], repo \\ @readonly_repo)
+      def find_by_query(query, opts \\ [], repo \\ @readonly_repo)
 
-      def get_by_query!(query, opts, repo) do
-        # @readonly_repo.get_by_query!(query, opts)
-        apply(repo, :get_by_query!, [query, opts])
+      def find_by_query(query, opts, repo) do
+        # @readonly_repo.find_by_query(query, opts)
+        apply(repo, :find_by_query, [query, opts])
       end
 
       ###########################################################################
@@ -110,7 +80,7 @@ defmodule Postgresiar.Schema do
       def preload!(struct_or_structs_or_nil, preloads, opts \\ [], repo \\ @readonly_repo)
 
       def preload!(struct_or_structs_or_nil, preloads, opts, repo) do
-        # @readonly_repo.get_by_query!(query, opts)
+        # @readonly_repo.find_by_query(query, opts)
         apply(repo, :preload!, [struct_or_structs_or_nil, preloads, opts])
       end
 
@@ -150,7 +120,25 @@ defmodule Postgresiar.Schema do
         end
       end
 
-      defoverridable PostgresiarSchema
+      ###########################################################################
+      @doc """
+      Get by id
+      """
+      def find_by_id(id, opts \\ [])
+
+      def find_by_id(id, opts) do
+        query =
+          from(
+            o in __MODULE__,
+            where: o.id == ^id,
+            limit: 1,
+            select: o
+          )
+
+        result = find_by_query(query, opts)
+
+        result
+      end
     end
   end
 

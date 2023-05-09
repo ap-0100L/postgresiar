@@ -82,13 +82,13 @@ defmodule Postgresiar.Repo do
         result =
           case result do
             {:ok, %{rows: []}} ->
-              :CODE_NOTHING_FOUND
+              :CODE_NOT_FOUND
 
             {:ok, %{rows: [[]]}} ->
-              :CODE_NOTHING_FOUND
+              :CODE_NOT_FOUND
 
             {:ok, %{rows: [[nil]]}} ->
-              :CODE_NOTHING_FOUND
+              :CODE_NOT_FOUND
 
             {:ok, %{rows: result}} ->
               result
@@ -156,9 +156,9 @@ defmodule Postgresiar.Repo do
       @doc """
       ### Function
       """
-      def get_by_query!(query, opts \\ [])
+      def find_by_query(query, opts \\ [])
 
-      def get_by_query!(query, opts) do
+      def find_by_query(query, opts) do
         result =
           UniError.rescue_error!(
             (
@@ -172,7 +172,7 @@ defmodule Postgresiar.Repo do
         result =
           case result do
             [] ->
-              :CODE_NOTHING_FOUND
+              :CODE_NOT_FOUND
 
             {:error, reason} ->
               UniError.raise_error!(
