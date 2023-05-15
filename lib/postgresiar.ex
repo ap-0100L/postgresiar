@@ -49,26 +49,6 @@ defmodule Postgresiar do
   @doc """
   ## Function
   """
-  def start_children!(list) do
-    Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I will try start persistent repos")
-    {:ok, child_spec} = build_child_spec_list!(list)
-
-    opts = [
-      strategy: :one_for_one,
-      name: @supervisor_name
-    ]
-
-    result = Utils.supervisor_start_link(child_spec, opts)
-
-    Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Persistent repos successfully started")
-
-    result
-  end
-
-  ##############################################################################
-  @doc """
-  ## Function
-  """
   def info!() do
     # {:ok, api_core_info} = ApiCore.info!()
     #
