@@ -122,7 +122,7 @@ defmodule Postgresiar.Schema do
 
       ###########################################################################
       @doc """
-      Get by id
+      Find by id
       """
       def find_by_id(id, opts \\ [])
 
