@@ -120,25 +120,25 @@ defmodule Postgresiar.Schema do
         end
       end
 
-      ###########################################################################
-      @doc """
-      Find by id
-      """
-      def find_by_id(id, opts \\ [])
-
-      def find_by_id(id, opts) do
-        query =
-          from(
-            o in __MODULE__,
-            where: o.id == ^id,
-            limit: 1,
-            select: o
-          )
-
-        result = find_by_query(query, opts)
-
-        result
-      end
+#      ###########################################################################
+#      @doc """
+#      Find by id
+#      """
+#      def find_by_id(id, opts \\ [])
+#
+#      def find_by_id(id, opts) do
+#        query =
+#          from(
+#            o in __MODULE__,
+#            where: o.id == ^id,
+#            limit: 1,
+#            select: o
+#          )
+#
+#        result = find_by_query(query, opts)
+#
+#        result
+#      end
     end
   end
 
