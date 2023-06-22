@@ -82,27 +82,27 @@ defmodule Postgresiar.Repo do
         result =
           case result do
             {:ok, %{rows: []}} ->
-              :CODE_NOT_FOUND
+              :NOT_FOUND
 
             {:ok, %{rows: [[]]}} ->
-              :CODE_NOT_FOUND
+              :NOT_FOUND
 
             {:ok, %{rows: [[nil]]}} ->
-              :CODE_NOT_FOUND
+              :NOT_FOUND
 
             {:ok, %{rows: result}} ->
               result
 
             {:error, reason} ->
               UniError.raise_error!(
-                :CODE_EXEC_QUERY_PERSISTENT_DB_ERROR,
+                :EXEC_QUERY_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: reason
               )
 
             unexpected ->
               UniError.raise_error!(
-                :CODE_EXEC_QUERY_PERSISTENT_DB_UNEXPECTED_ERROR,
+                :EXEC_QUERY_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: unexpected
               )
@@ -136,14 +136,14 @@ defmodule Postgresiar.Repo do
 
             {:error, reason} ->
               UniError.raise_error!(
-                :CODE_TRANSACTION_PERSISTENT_DB_ERROR,
+                :TRANSACTION_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: reason
               )
 
             unexpected ->
               UniError.raise_error!(
-                :CODE_TRANSACTION_PERSISTENT_DB_UNEXPECTED_ERROR,
+                :TRANSACTION_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: unexpected
               )
@@ -172,11 +172,11 @@ defmodule Postgresiar.Repo do
         result =
           case result do
             [] ->
-              :CODE_NOT_FOUND
+              :NOT_FOUND
 
             {:error, reason} ->
               UniError.raise_error!(
-                :CODE_GET_BY_QUERY_PERSISTENT_DB_ERROR,
+                :GET_BY_QUERY_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: reason
               )
@@ -209,7 +209,7 @@ defmodule Postgresiar.Repo do
           case result do
             {:error, reason} ->
               UniError.raise_error!(
-                :CODE_PRELOAD_PERSISTENT_DB_ERROR,
+                :PRELOAD_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: reason
               )
@@ -244,14 +244,14 @@ defmodule Postgresiar.Repo do
 
             {:error, reason} ->
               UniError.raise_error!(
-                :CODE_INSERT_PERSISTENT_DB_ERROR,
+                :INSERT_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: reason
               )
 
             unexpected ->
               UniError.raise_error!(
-                :CODE_INSERT_PERSISTENT_DB_UNEXPECTED_ERROR,
+                :INSERT_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Unexpected error occurred while process operation persistent DB"],
                 previous: unexpected
               )
@@ -307,14 +307,14 @@ defmodule Postgresiar.Repo do
 
             {:error, reason} ->
               UniError.raise_error!(
-                :CODE_UPDATE_PERSISTENT_DB_ERROR,
+                :UPDATE_PERSISTENT_DB_ERROR,
                 ["Error occurred while process operation persistent DB"],
                 previous: reason
               )
 
             unexpected ->
               UniError.raise_error!(
-                :CODE_UPDATE_PERSISTENT_DB_UNEXPECTED_ERROR,
+                :UPDATE_PERSISTENT_DB_UNEXPECTED_ERROR,
                 ["Unexpected error occurred while process operation persistent DB"],
                 previous: unexpected
               )
