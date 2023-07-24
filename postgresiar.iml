@@ -122,5 +122,6 @@
     <orderEntry type="library" name="inch_ex" level="project" />
     <orderEntry type="library" name="stream_data" level="project" />
     <orderEntry type="library" name="mariaex" level="project" />
+    <orderEntry type="library" name="mariaex" level="project" />
   </component>
 </module>
