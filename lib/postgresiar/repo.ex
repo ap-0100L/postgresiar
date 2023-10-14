@@ -68,16 +68,23 @@ defmodule Postgresiar.Repo do
       def exec_query(query, params, opts) do
         # query("select get_ch_part_actions($1, $2, $3, $4)", ["notification_bot", "rest_api_ch_part", "message", "send"])
 
+        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
+
         result =
-          UniError.rescue_error!(
-            (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+          if disable_rpc do
+            #apply(__MODULE__, :query, [query, params, opts])
+            query(query, params, opts)
+          else
+            UniError.rescue_error!(
+              (
+                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :query, [query, params, opts])
+                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :query, [query, params, opts])
 
-              # __MODULE__.all(query, opts)
+                # __MODULE__.all(query, opts)
+              )
             )
-          )
+          end
 
         result =
           case result do
@@ -118,16 +125,23 @@ defmodule Postgresiar.Repo do
       def transaction!(fun_or_multi, opts \\ [])
 
       def transaction!(fun_or_multi, opts) do
+        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
+
         result =
-          UniError.rescue_error!(
-            (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+          if disable_rpc do
+            #apply(__MODULE__, :transaction, [fun_or_multi, opts])
+            transaction(fun_or_multi, opts)
+          else
+            UniError.rescue_error!(
+              (
+                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :transaction, [fun_or_multi, opts])
+                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :transaction, [fun_or_multi, opts])
 
-              # __MODULE__.all(query, opts)
+                # __MODULE__.all(query, opts)
+              )
             )
-          )
+          end
 
         result =
           case result do
@@ -159,15 +173,22 @@ defmodule Postgresiar.Repo do
       def find_by_query(query, opts \\ [])
 
       def find_by_query(query, opts) do
-        result =
-          UniError.rescue_error!(
-            (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :all, [query, opts])
+        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
 
-              # __MODULE__.all(query, opts)
+        result =
+          if disable_rpc do
+            #apply(__MODULE__, :all, [query, opts])
+            all(query, opts)
+          else
+            UniError.rescue_error!(
+              (
+                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :all, [query, opts])
+
+                # __MODULE__.all(query, opts)
+              )
             )
-          )
+          end
 
         result =
           case result do
@@ -195,15 +216,22 @@ defmodule Postgresiar.Repo do
       def preload!(struct_or_structs_or_nil, preloads, opts \\ [])
 
       def preload!(struct_or_structs_or_nil, preloads, opts) do
-        result =
-          UniError.rescue_error!(
-            (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
+        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
 
-              # __MODULE__.all(query, opts)
+        result =
+          if disable_rpc do
+            #apply(__MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
+            preload(struct_or_structs_or_nil, preloads, opts)
+          else
+            UniError.rescue_error!(
+              (
+                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
+
+                # __MODULE__.all(query, opts)
+              )
             )
-          )
+          end
 
         result =
           case result do
@@ -226,16 +254,23 @@ defmodule Postgresiar.Repo do
       Insert
       """
       def insert_record!(obj) do
+        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
+
         result =
-          UniError.rescue_error!(
-            (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+          if disable_rpc do
+            #apply(__MODULE__, :insert, [obj])
+            insert(obj)
+          else
+            UniError.rescue_error!(
+              (
+                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :insert, [obj])
+                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :insert, [obj])
 
-              # __MODULE__.insert(obj)
+                # __MODULE__.insert(obj)
+              )
             )
-          )
+          end
 
         result =
           case result do
@@ -289,16 +324,23 @@ defmodule Postgresiar.Repo do
       Update
       """
       def update_record!(obj) do
+        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
+
         result =
-          UniError.rescue_error!(
-            (
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+          if disable_rpc do
+            #apply(__MODULE__, :update, [obj])
+            update(obj)
+          else
+            UniError.rescue_error!(
+              (
+                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
-              RPCUtils.call_local_or_rpc!(remote_node_name_prefixes, __MODULE__, :update, [obj])
+                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :update, [obj])
 
-              # __MODULE__.update(obj)
+                # __MODULE__.update(obj)
+              )
             )
-          )
+          end
 
         result =
           case result do
