@@ -25,11 +25,9 @@ defmodule Postgresiar.Schema do
       import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3]
       import Ecto.Query.API, only: [fragment: 1]
 
-      @filter_operations [:find, :delete, :replace]
-      @logical_operators [:and, :or]
+      @repo_modes [:RW, :RO]
 
-      @repo Keyword.fetch!(opts, :repo)
-      @readonly_repo Keyword.get(opts, :readonly_repo, @repo)
+      @repos Application.get_env(:postgresiar, :repos)
 
       use Utils
       require Postgresiar.Schema
@@ -39,6 +37,39 @@ defmodule Postgresiar.Schema do
       alias Postgresiar.Schema, as: PostgresiarSchema
 
       @behaviour PostgresiarSchema
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def select_repo_by_uuid(uuid, mode)
+          when is_nil(uuid) or not is_atom(mode) or mode not in @repo_modes,
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["uuid, mode cannot be nil; mode must be one of #{@repo_modes}"])
+
+      def select_repo_by_uuid(uuid, mode) do
+        [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
+
+        <<time_low::32, time_mid::16, _uuid_v1::4, time_hi::12, _variant10::2, clock_seq_hi::6, _clock_seq_low::8, _node::48>> = b
+        timestamp = <<time_hi::12, time_mid::16, time_low::32>>
+        <<timestamp::60>> = timestamp
+
+        epoch = (timestamp - 122_192_928_000_000_000) / 10
+        d = trunc(epoch) |> DateTime.from_unix!(:microsecond)
+        s = "#{d.year}_#{String.pad_leading("#{d.month}", 2, "0")}"
+
+        clock_seq_hi = clock_seq_hi - trunc(clock_seq_hi / 100) * 100
+
+        repo =
+          if clock_seq_hi <= 49 do
+            [repo_a, _repo_b] = @repos
+            repo_a
+          else
+            [_repo_a, repo_b] = @repos
+            repo_b
+          end
+
+        {:ok, {repo, s}}
+      end
 
       ####################################################################################################################
       @doc """
@@ -91,6 +122,10 @@ defmodule Postgresiar.Schema do
       def insert!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil, repo \\ @repo)
 
       def insert!(obj, async, rescue_func, rescue_func_args, module, repo) do
+
+        ###########
+        obj = Ecto.put_meta(obj, source: "source")
+
         changeset = __MODULE__.insert_changeset(%__MODULE__{}, obj)
 
         if async do

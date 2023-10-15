@@ -1,4 +1,4 @@
-defmodule Postgresiar.Repo do
+defmodule Postgresiar.DistributedRepo do
   ####################################################################################################################
   ####################################################################################################################
   @moduledoc """
@@ -32,7 +32,7 @@ defmodule Postgresiar.Repo do
       use Utils
 
       alias Utils, as: Utils
-      alias Postgresiar.Repo, as: PostgresiarRepo
+      alias Postgresiar.DistributedRepo, as: PostgresiarRepo
 
       @behaviour PostgresiarRepo
 
@@ -72,7 +72,7 @@ defmodule Postgresiar.Repo do
 
         result =
           if disable_rpc do
-            #apply(__MODULE__, :query, [query, params, opts])
+            # apply(__MODULE__, :query, [query, params, opts])
             query(query, params, opts)
           else
             UniError.rescue_error!(
@@ -82,7 +82,7 @@ defmodule Postgresiar.Repo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :query, [query, params, opts])
 
                 # __MODULE__.all(query, opts)
-              )
+                )
             )
           end
 
@@ -129,7 +129,7 @@ defmodule Postgresiar.Repo do
 
         result =
           if disable_rpc do
-            #apply(__MODULE__, :transaction, [fun_or_multi, opts])
+            # apply(__MODULE__, :transaction, [fun_or_multi, opts])
             transaction(fun_or_multi, opts)
           else
             UniError.rescue_error!(
@@ -139,7 +139,7 @@ defmodule Postgresiar.Repo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :transaction, [fun_or_multi, opts])
 
                 # __MODULE__.all(query, opts)
-              )
+                )
             )
           end
 
@@ -177,7 +177,7 @@ defmodule Postgresiar.Repo do
 
         result =
           if disable_rpc do
-            #apply(__MODULE__, :all, [query, opts])
+            # apply(__MODULE__, :all, [query, opts])
             all(query, opts)
           else
             UniError.rescue_error!(
@@ -186,7 +186,7 @@ defmodule Postgresiar.Repo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :all, [query, opts])
 
                 # __MODULE__.all(query, opts)
-              )
+                )
             )
           end
 
@@ -220,7 +220,7 @@ defmodule Postgresiar.Repo do
 
         result =
           if disable_rpc do
-            #apply(__MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
+            # apply(__MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
             preload(struct_or_structs_or_nil, preloads, opts)
           else
             UniError.rescue_error!(
@@ -229,7 +229,7 @@ defmodule Postgresiar.Repo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
 
                 # __MODULE__.all(query, opts)
-              )
+                )
             )
           end
 
@@ -258,7 +258,7 @@ defmodule Postgresiar.Repo do
 
         result =
           if disable_rpc do
-            #apply(__MODULE__, :insert, [obj])
+            # apply(__MODULE__, :insert, [obj])
             insert(obj)
           else
             UniError.rescue_error!(
@@ -268,7 +268,7 @@ defmodule Postgresiar.Repo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :insert, [obj])
 
                 # __MODULE__.insert(obj)
-              )
+                )
             )
           end
 
@@ -328,7 +328,7 @@ defmodule Postgresiar.Repo do
 
         result =
           if disable_rpc do
-            #apply(__MODULE__, :update, [obj])
+            # apply(__MODULE__, :update, [obj])
             update(obj)
           else
             UniError.rescue_error!(
@@ -338,7 +338,7 @@ defmodule Postgresiar.Repo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :update, [obj])
 
                 # __MODULE__.update(obj)
-              )
+                )
             )
           end
 
