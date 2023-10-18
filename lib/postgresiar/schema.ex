@@ -29,6 +29,10 @@ defmodule Postgresiar.Schema do
       @is_db_distributed opts[:is_db_distributed] || false
       @is_table_distributed opts[:is_table_distributed] || false
 
+      @sql_create_table opts[:sql_create_table] || nil
+
+      @auto_create opts[:auto_create] || ((@is_db_distributed or @is_table_distributed) and not is_nil(@sql_create_table))
+
       @repo_modes [:RW, :RO]
 
       @repos Application.get_env(:postgresiar, :repos)
@@ -43,6 +47,16 @@ defmodule Postgresiar.Schema do
                          repo_ro
                        )
 
+      @sql_find_table_by_name ~s"""
+      SELECT EXISTS (
+      SELECT FROM
+        pg_tables
+      WHERE
+        schemaname = 'germes' AND
+        tablename  = $1
+      );
+      """
+
       use Utils
       require Postgresiar.Schema
       alias Ecto.Query.Builder
@@ -51,6 +65,110 @@ defmodule Postgresiar.Schema do
       alias Postgresiar.Schema, as: PostgresiarSchema
 
       @behaviour PostgresiarSchema
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def is_db_distributed(),
+        do: @is_db_distributed
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def is_table_distributed(),
+        do: @is_table_distributed
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def create_table(repo, table_name)
+          when not is_atom(repo) or not is_bitstring(table_name),
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["repo, table_name cannot be nil; repo must be an atom; table_name must be a string"])
+
+      def create_table(repo, table_name) do
+        {:ok, [[table_exists]]} = apply(repo, :exec_query, [@sql_find_table_by_name, [table_name]])
+
+        if table_exists do
+          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] does exists")
+        else
+          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] does not exists")
+          sql_create_table = String.replace(@sql_create_table, "{#}", table_name)
+
+          sqls = String.split(sql_create_table, ";", trim: true)
+
+          for sql <- sqls do
+            {:ok, result} = apply(repo, :exec_query, [sql, []])
+          end
+
+          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] created successfully")
+        end
+
+        {:ok, true}
+      end
+
+      def create_table(repo, table_name),
+        do:
+          UniError.raise_error!(
+            :WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            arguments: %{
+              repo: repo,
+              table_name: table_name
+            }
+          )
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def create_tables() when not @auto_create do
+        table_name = Ecto.get_meta(%__MODULE__{}, :source)
+
+        Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Skip create for table [#{table_name}] in repo RW")
+
+        {:ok, true}
+      end
+
+      def create_tables() when @auto_create do
+        ids = 0..255
+        table_name = Ecto.get_meta(%__MODULE__{}, :source)
+
+        cond do
+          @is_db_distributed and @is_table_distributed ->
+            # All repos, many tables
+            for id <- ids do
+              table_name_postfix = "_#{String.pad_leading("#{id}", 3, "0")}"
+
+              for {{repo_rw, _}, _} <- @repos do
+                table_name = table_name <> table_name_postfix
+                {:ok, true} = create_table(repo_rw, table_name)
+              end
+            end
+
+          not @is_db_distributed and @is_table_distributed ->
+            # One repo, many tables
+            for id <- ids do
+              table_name_postfix = "_#{String.pad_leading("#{id}", 3, "0")}"
+
+              table_name = table_name <> table_name_postfix
+              {:ok, true} = create_table(@default_rw_repo, table_name)
+            end
+
+          @is_db_distributed and not @is_table_distributed ->
+            # All repos, one table
+            for {{repo_rw, _}, _} <- @repos do
+              {:ok, true} = create_table(repo_rw, table_name)
+            end
+
+          not @is_db_distributed and not @is_table_distributed ->
+            {:ok, true} = create_table(@default_rw_repo, table_name)
+        end
+
+        {:ok, true}
+      end
 
       ####################################################################################################################
       @doc """

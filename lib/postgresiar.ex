@@ -35,10 +35,15 @@ defmodule Postgresiar do
            } = _item,
            accum ->
           item = Supervisor.child_spec({repo_rw, rw_opts[:child_opts] || []}, id: repo_rw)
-          accum ++ [item]
+          accum = accum ++ [item]
 
           item = Supervisor.child_spec({repo_ro, ro_opts[:child_opts] || []}, id: repo_ro)
-          accum ++ [item]
+          accum = accum ++ [item]
+
+          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Repo RW added to children [#{inspect(repo_rw)}]")
+          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Repo RO added to children [#{inspect(repo_ro)}]")
+
+          accum
         end
       )
     {:ok, result}
