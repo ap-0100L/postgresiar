@@ -1,4 +1,4 @@
-defmodule Postgresiar.DistributedRepo do
+defmodule Postgresiar.Repo do
   ####################################################################################################################
   ####################################################################################################################
   @moduledoc """
@@ -32,7 +32,7 @@ defmodule Postgresiar.DistributedRepo do
       use Utils
 
       alias Utils, as: Utils
-      alias Postgresiar.DistributedRepo, as: PostgresiarRepo
+      alias Postgresiar.Repo, as: PostgresiarRepo
 
       @behaviour PostgresiarRepo
 
@@ -82,7 +82,7 @@ defmodule Postgresiar.DistributedRepo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :query, [query, params, opts])
 
                 # __MODULE__.all(query, opts)
-                )
+              )
             )
           end
 
@@ -139,7 +139,7 @@ defmodule Postgresiar.DistributedRepo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :transaction, [fun_or_multi, opts])
 
                 # __MODULE__.all(query, opts)
-                )
+              )
             )
           end
 
@@ -186,7 +186,7 @@ defmodule Postgresiar.DistributedRepo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :all, [query, opts])
 
                 # __MODULE__.all(query, opts)
-                )
+              )
             )
           end
 
@@ -229,7 +229,7 @@ defmodule Postgresiar.DistributedRepo do
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
 
                 # __MODULE__.all(query, opts)
-                )
+              )
             )
           end
 
@@ -249,146 +249,148 @@ defmodule Postgresiar.DistributedRepo do
         {:ok, result}
       end
 
-      ####################################################################################################################
-      @doc """
-      Insert
-      """
-      def insert_record!(obj) do
-        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
+      if not @read_only do
+        ####################################################################################################################
+        @doc """
+        Insert
+        """
+        def insert_record!(obj) do
+          {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
 
-        result =
-          if disable_rpc do
-            # apply(__MODULE__, :insert, [obj])
-            insert(obj)
-          else
-            UniError.rescue_error!(
-              (
-                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
-
-                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :insert, [obj])
-
-                # __MODULE__.insert(obj)
-                )
-            )
-          end
-
-        result =
-          case result do
-            {:ok, item} ->
-              item
-
-            {:error, reason} ->
-              UniError.raise_error!(
-                :INSERT_PERSISTENT_DB_ERROR,
-                ["Error occurred while process operation persistent DB"],
-                previous: reason
-              )
-
-            unexpected ->
-              UniError.raise_error!(
-                :INSERT_PERSISTENT_DB_UNEXPECTED_ERROR,
-                ["Unexpected error occurred while process operation persistent DB"],
-                previous: unexpected
-              )
-          end
-
-        {:ok, result}
-      end
-
-      ####################################################################################################################
-      @doc """
-      Insert async
-      """
-      def insert_record_async(obj, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
-
-      def insert_record_async(obj, rescue_func, rescue_func_args, module) do
-        func = fn ->
-          # :timer.sleep(20000)
-          {reraise, log_error} =
-            if is_nil(rescue_func) do
-              {true, true}
+          result =
+            if disable_rpc do
+              # apply(__MODULE__, :insert, [obj])
+              insert(obj)
             else
-              {false, false}
+              UniError.rescue_error!(
+                (
+                  {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+
+                  RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :insert, [obj])
+
+                  # __MODULE__.insert(obj)
+                )
+              )
             end
 
-          UniError.rescue_error!(__MODULE__.insert_record!(obj), reraise, log_error, rescue_func, rescue_func_args, module)
-        end
+          result =
+            case result do
+              {:ok, item} ->
+                item
 
-        pid = spawn(func)
-
-        {:ok, pid}
-      end
-
-      ####################################################################################################################
-      @doc """
-      Update
-      """
-      def update_record!(obj) do
-        {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
-
-        result =
-          if disable_rpc do
-            # apply(__MODULE__, :update, [obj])
-            update(obj)
-          else
-            UniError.rescue_error!(
-              (
-                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
-
-                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :update, [obj])
-
-                # __MODULE__.update(obj)
+              {:error, reason} ->
+                UniError.raise_error!(
+                  :INSERT_PERSISTENT_DB_ERROR,
+                  ["Error occurred while process operation persistent DB"],
+                  previous: reason
                 )
-            )
-          end
 
-        result =
-          case result do
-            {:ok, item} ->
-              item
-
-            {:error, reason} ->
-              UniError.raise_error!(
-                :UPDATE_PERSISTENT_DB_ERROR,
-                ["Error occurred while process operation persistent DB"],
-                previous: reason
-              )
-
-            unexpected ->
-              UniError.raise_error!(
-                :UPDATE_PERSISTENT_DB_UNEXPECTED_ERROR,
-                ["Unexpected error occurred while process operation persistent DB"],
-                previous: unexpected
-              )
-          end
-
-        {:ok, result}
-      end
-
-      ####################################################################################################################
-      @doc """
-      Insert async
-      """
-      def update_record_async(obj, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
-
-      def update_record_async(obj, rescue_func, rescue_func_args, module) do
-        func = fn ->
-          {reraise, log_error} =
-            if is_nil(rescue_func) do
-              {true, true}
-            else
-              {false, false}
+              unexpected ->
+                UniError.raise_error!(
+                  :INSERT_PERSISTENT_DB_UNEXPECTED_ERROR,
+                  ["Unexpected error occurred while process operation persistent DB"],
+                  previous: unexpected
+                )
             end
 
-          UniError.rescue_error!(__MODULE__.update_record!(obj), reraise, log_error, rescue_func, rescue_func_args, module)
+          {:ok, result}
         end
 
-        pid = spawn(func)
+        ####################################################################################################################
+        @doc """
+        Insert async
+        """
+        def insert_record_async(obj, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
 
-        {:ok, pid}
+        def insert_record_async(obj, rescue_func, rescue_func_args, module) do
+          func = fn ->
+            # :timer.sleep(20000)
+            {reraise, log_error} =
+              if is_nil(rescue_func) do
+                {true, true}
+              else
+                {false, false}
+              end
+
+            UniError.rescue_error!(__MODULE__.insert_record!(obj), reraise, log_error, rescue_func, rescue_func_args, module)
+          end
+
+          pid = spawn(func)
+
+          {:ok, pid}
+        end
+
+        ####################################################################################################################
+        @doc """
+        Update
+        """
+        def update_record!(obj) do
+          {:ok, disable_rpc} = Utils.get_app_env(:postgresiar, :disable_rpc)
+
+          result =
+            if disable_rpc do
+              # apply(__MODULE__, :update, [obj])
+              update(obj)
+            else
+              UniError.rescue_error!(
+                (
+                  {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+
+                  RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :update, [obj])
+
+                  # __MODULE__.update(obj)
+                )
+              )
+            end
+
+          result =
+            case result do
+              {:ok, item} ->
+                item
+
+              {:error, reason} ->
+                UniError.raise_error!(
+                  :UPDATE_PERSISTENT_DB_ERROR,
+                  ["Error occurred while process operation persistent DB"],
+                  previous: reason
+                )
+
+              unexpected ->
+                UniError.raise_error!(
+                  :UPDATE_PERSISTENT_DB_UNEXPECTED_ERROR,
+                  ["Unexpected error occurred while process operation persistent DB"],
+                  previous: unexpected
+                )
+            end
+
+          {:ok, result}
+        end
+
+        ####################################################################################################################
+        @doc """
+        Insert async
+        """
+        def update_record_async(obj, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
+
+        def update_record_async(obj, rescue_func, rescue_func_args, module) do
+          func = fn ->
+            {reraise, log_error} =
+              if is_nil(rescue_func) do
+                {true, true}
+              else
+                {false, false}
+              end
+
+            UniError.rescue_error!(__MODULE__.update_record!(obj), reraise, log_error, rescue_func, rescue_func_args, module)
+          end
+
+          pid = spawn(func)
+
+          {:ok, pid}
+        end
+
+        defoverridable PostgresiarRepo
       end
-
-      defoverridable PostgresiarRepo
     end
   end
 

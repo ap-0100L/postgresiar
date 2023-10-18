@@ -20,11 +20,11 @@ defmodule Postgresiar.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {Postgresiar.Application, []},
       # Start only this apps automatically
-      # TODO: Make it application with genserver
       # applications: [],
       # A list of OTP applications your application depends on which are not included in :deps
-      # extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 

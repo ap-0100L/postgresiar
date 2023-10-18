@@ -6,6 +6,7 @@ defmodule Postgresiar.Schema do
   """
 
   use Utils
+  use Bitwise, only_operators: true
 
   ####################################################################################################################
   @doc """
@@ -25,9 +26,22 @@ defmodule Postgresiar.Schema do
       import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3]
       import Ecto.Query.API, only: [fragment: 1]
 
+      @is_db_distributed opts[:is_db_distributed] || false
+      @is_table_distributed opts[:is_table_distributed] || false
+
       @repo_modes [:RW, :RO]
 
       @repos Application.get_env(:postgresiar, :repos)
+
+      @default_rw_repo (
+                         [{{repo_rw, _}, _} | _] = @repos
+                         repo_rw
+                       )
+
+      @default_ro_repo (
+                         [{_, {repo_ro, _}} | _] = @repos
+                         repo_ro
+                       )
 
       use Utils
       require Postgresiar.Schema
@@ -42,40 +56,161 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def select_repo_by_uuid(uuid, mode)
-          when is_nil(uuid) or not is_atom(mode) or mode not in @repo_modes,
-          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["uuid, mode cannot be nil; mode must be one of #{@repo_modes}"])
+      def select_repo_by_uuid(_uuid, mode)
+          when not is_atom(mode) or mode not in @repo_modes,
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["mode cannot be nil; mode must be one of #{@repo_modes}"])
 
       def select_repo_by_uuid(uuid, mode) do
-        [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
+        {repo_rw, repo_ro} =
+          if @is_db_distributed do
+            [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
 
-        <<time_low::32, time_mid::16, _uuid_v1::4, time_hi::12, _variant10::2, clock_seq_hi::6, _clock_seq_low::8, _node::48>> = b
-        timestamp = <<time_hi::12, time_mid::16, time_low::32>>
-        <<timestamp::60>> = timestamp
+            <<_hi_part::64, lo_part::64>> = b
 
-        epoch = (timestamp - 122_192_928_000_000_000) / 10
-        d = trunc(epoch) |> DateTime.from_unix!(:microsecond)
-        s = "#{d.year}_#{String.pad_leading("#{d.month}", 2, "0")}"
+            part = lo_part &&& 0xFF
 
-        clock_seq_hi = clock_seq_hi - trunc(clock_seq_hi / 100) * 100
+            {repo_rw, repo_ro} =
+              if part <= 127 do
+                [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
+                {repo_a_rw, repo_a_ro}
+              else
+                [_repo_a, {{repo_b_rw, _}, {repo_b_ro, _}}] = @repos
+                {repo_b_rw, repo_b_ro}
+              end
 
-        repo =
-          if clock_seq_hi <= 49 do
-            [repo_a, _repo_b] = @repos
-            repo_a
+            {repo_rw, repo_ro}
           else
-            [_repo_a, repo_b] = @repos
-            repo_b
+            [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
+
+            {repo_a_rw, repo_a_ro}
           end
 
-        {:ok, {repo, s}}
+        repo =
+          if mode == :RW do
+            repo_rw
+          else
+            repo_ro
+          end
+
+        {:ok, repo}
       end
+
+      def select_repo_by_uuid(uuid, mode),
+        do:
+          UniError.raise_error!(
+            :WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            arguments: %{
+              uuid: uuid,
+              mode: mode
+            }
+          )
 
       ####################################################################################################################
       @doc """
       ### Function
       """
-      def exec_query(query, params \\ [], opts \\ [], repo \\ @readonly_repo)
+      def get_table_postfix_by_uuid(uuid)
+          when not is_bitstring(uuid),
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["uuid cannot be nil; uuid must be a string"])
+
+      def get_table_postfix_by_uuid(uuid) do
+        s =
+          if @is_table_distributed do
+            [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
+
+            <<hi_part::64, _lo_part::64>> = b
+
+            part = hi_part &&& 0xFF
+
+            "_#{String.pad_leading("#{part}", 3, "0")}"
+          else
+            ""
+          end
+
+        {:ok, s}
+      end
+
+      def get_table_postfix_by_uuid(uuid),
+        do:
+          UniError.raise_error!(
+            :WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            arguments: %{
+              uuid: uuid
+            }
+          )
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def prepare_struct(struct, mode, key \\ :id)
+
+      def prepare_struct(struct, mode, key)
+          when not is_struct(struct) or not is_atom(mode) or mode not in @repo_modes or not is_atom(key),
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["struct, mode, key cannot be nil; mode, key must be an atom; struct must be a struct; mode must be one of #{@repo_modes}"])
+
+      def prepare_struct(struct, mode, key) do
+        id = Map.get(key, struct, nil)
+
+        {:ok, repo} = select_repo_by_uuid(id, mode)
+        {:ok, postfix} = get_table_postfix_by_uuid(id)
+
+        source = Ecto.get_meta(struct, :source)
+        struct = Ecto.put_meta(struct, :source, "#{source}#{postfix}")
+
+        {:ok, {repo, struct}}
+      end
+
+      def prepare_struct(struct, mode, key),
+        do:
+          UniError.raise_error!(
+            :WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            arguments: %{
+              struct: struct,
+              mode: mode,
+              key: key
+            }
+          )
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def get_repo_table_name(id, mode)
+
+      def get_repo_table_name(id, mode)
+          when not is_bitstring(id) or not is_atom(mode) or mode not in @repo_modes,
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["id, mode cannot be nil; mode must be an atom; mode must be one of #{@repo_modes}"])
+
+      def get_repo_table_name(id, mode) do
+        table_name = Ecto.get_meta(%__MODULE__{}, :source)
+        {:ok, postfix} = get_table_postfix_by_uuid(id)
+        table_name = "#{table_name}#{postfix}"
+
+        {:ok, repo} = select_repo_by_uuid(id, mode)
+
+        {:ok, {repo, table_name}}
+      end
+
+      def get_repo_table_name(id, mode),
+        do:
+          UniError.raise_error!(
+            :WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            arguments: %{
+              id: id,
+              mode: mode
+            }
+          )
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def exec_query(query, params \\ [], opts \\ [], repo \\ @default_ro_repo)
 
       def exec_query(query, params, opts, repo) do
         # @readonly_repo.exec_query(query, params, opts)
@@ -86,7 +221,7 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def transaction!(fun_or_multi, opts \\ [], repo \\ @repo)
+      def transaction!(fun_or_multi, opts \\ [], repo \\ @default_rw_repo)
 
       def transaction!(fun_or_multi, opts, repo) do
         # @readonly_repo.exec_query(query, params, opts)
@@ -97,7 +232,7 @@ defmodule Postgresiar.Schema do
       @doc """
       Get by query
       """
-      def find_by_query(query, opts \\ [], repo \\ @readonly_repo)
+      def find_by_query(query, opts \\ [], repo \\ @default_ro_repo)
 
       def find_by_query(query, opts, repo) do
         # @readonly_repo.find_by_query(query, opts)
@@ -108,23 +243,36 @@ defmodule Postgresiar.Schema do
       @doc """
       Get by query
       """
-      def preload!(struct_or_structs_or_nil, preloads, opts \\ [], repo \\ @readonly_repo)
+      def preload!(struct_or_structs_or_nil, preloads, opts \\ [])
 
-      def preload!(struct_or_structs_or_nil, preloads, opts, repo) do
-        # @readonly_repo.find_by_query(query, opts)
+      def preload!(struct_or_structs_or_nil, preloads, opts) when is_struct(struct_or_structs_or_nil) do
+        key = opts[:uuid_key] || :id
+        {:ok, {repo, struct_or_structs_or_nil}} = prepare_struct(struct_or_structs_or_nil, :RO, key)
+
         apply(repo, :preload!, [struct_or_structs_or_nil, preloads, opts])
       end
+
+      def preload!(struct_or_structs_or_nil, preloads, opts),
+        do:
+          UniError.raise_error!(
+            :WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            arguments: %{
+              struct_or_structs_or_nil: struct_or_structs_or_nil,
+              preloads: preloads,
+              opts: opts
+            }
+          )
 
       ###########################################################################
       @doc """
       Insert
       """
-      def insert!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil, repo \\ @repo)
+      def insert(obj, opts \\ [], async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
 
-      def insert!(obj, async, rescue_func, rescue_func_args, module, repo) do
-
-        ###########
-        obj = Ecto.put_meta(obj, source: "source")
+      def insert(obj, opts, async, rescue_func, rescue_func_args, module) do
+        key = opts[:uuid_key] || :id
+        {:ok, {repo, obj}} = prepare_struct(obj, :RW, key)
 
         changeset = __MODULE__.insert_changeset(%__MODULE__{}, obj)
 
@@ -141,9 +289,12 @@ defmodule Postgresiar.Schema do
       @doc """
       Update
       """
-      def update!(obj, async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil, repo \\ @repo)
+      def update(obj, opts \\ [], async \\ false, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
 
-      def update!(obj, async, rescue_func, rescue_func_args, module, repo) do
+      def update(obj, opts, async, rescue_func, rescue_func_args, module) do
+        key = opts[:uuid_key] || :id
+        {:ok, {repo, obj}} = prepare_struct(obj, :RW, key)
+
         changeset = __MODULE__.update_changeset(%__MODULE__{id: obj.id}, obj)
 
         if async do
@@ -155,25 +306,25 @@ defmodule Postgresiar.Schema do
         end
       end
 
-#      ###########################################################################
-#      @doc """
-#      Find by id
-#      """
-#      def find_by_id(id, opts \\ [])
-#
-#      def find_by_id(id, opts) do
-#        query =
-#          from(
-#            o in __MODULE__,
-#            where: o.id == ^id,
-#            limit: 1,
-#            select: o
-#          )
-#
-#        result = find_by_query(query, opts)
-#
-#        result
-#      end
+      #      ###########################################################################
+      #      @doc """
+      #      Find by id
+      #      """
+      #      def find_by_id(id, opts \\ [])
+      #
+      #      def find_by_id(id, opts) do
+      #        query =
+      #          from(
+      #            o in __MODULE__,
+      #            where: o.id == ^id,
+      #            limit: 1,
+      #            select: o
+      #          )
+      #
+      #        result = find_by_query(query, opts)
+      #
+      #        result
+      #      end
     end
   end
 
