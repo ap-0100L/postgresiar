@@ -205,6 +205,25 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
+      def prepare_model(%__MODULE__{} = model, uuid) do
+        model =
+          if @is_table_distributed do
+            {:ok, postfix} = PostgresiarRepo.get_table_postfix_by_uuid(uuid)
+
+            source = Ecto.get_meta(model, :source)
+            model = Ecto.put_meta(model, source: "#{source}#{postfix}")
+
+          else
+            model
+          end
+
+        {:ok, model}
+      end
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
       def exec_query(query, params \\ [], opts \\ [], repo \\ @default_ro_repo)
 
       def exec_query(query, params, opts, repo) do
@@ -269,7 +288,10 @@ defmodule Postgresiar.Schema do
         uuid = Map.fetch!(obj, key)
         {:ok, repo} = PostgresiarRepo.select_repo_by_uuid(uuid, :RW)
 
-        changeset = __MODULE__.insert_changeset(%__MODULE__{}, obj)
+        {:ok, model} = prepare_model(%__MODULE__{}, uuid)
+        IO.inspect(model, label: "[QQQQQQQQQQQQQQQQQQ03][model]")
+
+        changeset = __MODULE__.insert_changeset(model, obj)
 
         if async do
           # @repo.insert_record_async(changeset, rescue_func, rescue_func_args, module)
@@ -292,7 +314,9 @@ defmodule Postgresiar.Schema do
         uuid = Map.fetch!(obj, key)
         {:ok, repo} = PostgresiarRepo.select_repo_by_uuid(uuid, :RW)
 
-        changeset = __MODULE__.update_changeset(%__MODULE__{id: obj.id}, obj)
+        {:ok, model} = prepare_model(%__MODULE__{id: obj.id}, uuid)
+
+        changeset = __MODULE__.update_changeset(model, obj)
 
         if async do
           # @repo.update_record_async(changeset, rescue_func, rescue_func_args, module)
@@ -325,6 +349,10 @@ defmodule Postgresiar.Schema do
     end
   end
 
+  ####################################################################################################################
+  @doc """
+  ### Function
+  """
   def create_tables(app_with_dbo, dbo_modules_prefix)
       when not is_atom(app_with_dbo) or not is_bitstring(dbo_modules_prefix),
       do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["app_with_dbo, dbo_modules_prefix cannot be nil; app_with_dbo must be an atom; dbo_modules_prefix must be a string"])
