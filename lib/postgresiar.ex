@@ -8,6 +8,8 @@ defmodule Postgresiar do
   use GenServer
   use Utils
 
+  alias Postgresiar.Schema, as: PostgresiarSchema
+
   @genserver_name Postgresiar.Worker
 
   ##############################################################################
@@ -78,46 +80,14 @@ defmodule Postgresiar do
       (
         Utils.ensure_all_started!([:inets, :ssl])
 
-        Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I will try set cookie")
+        PostgresiarSchema.create_tables(:api_core, "Elixir.ApiCore.Db.Persistent.Dao")
 
-        {:ok, cookie} = get_app_env(:cookie)
-        raise_if_empty!(cookie, :atom, "Wrong cookie value")
-        Node.set_cookie(Node.self(), cookie)
-
-        Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I will try to enable notification monitor on node connection events")
-
-        result = :net_kernel.monitor_nodes(true)
-
-        if :ok != result do
-          UniError.raise_error!(
-            :CAN_NOT_ENABLE_MONITOR_ERROR,
-            ["Can not enable notification monitor on node connection events"],
-            previous: result
-          )
-        end
+        Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Postgresiar started successfully")
       )
     )
 
     Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I completed init part")
     {:ok, state}
-  end
-
-  ##############################################################################
-  @doc """
-  ## Function
-  """
-  @impl true
-  def handle_info({:nodeup, node}, state) do
-    Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Node #{inspect(node)} connected")
-
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_info({:nodedown, node}, state) do
-    Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Node #{inspect(node)} disconnected")
-
-    {:noreply, state}
   end
 
   ##############################################################################

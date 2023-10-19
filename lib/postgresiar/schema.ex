@@ -6,7 +6,6 @@ defmodule Postgresiar.Schema do
   """
 
   use Utils
-  use Bitwise, only_operators: true
 
   ####################################################################################################################
   @doc """
@@ -62,6 +61,7 @@ defmodule Postgresiar.Schema do
       alias Ecto.Query.Builder
 
       alias Utils, as: Utils
+      alias Postgresiar.Repo, as: PostgresiarRepo
       alias Postgresiar.Schema, as: PostgresiarSchema
 
       @behaviour PostgresiarSchema
@@ -174,146 +174,23 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def select_repo_by_uuid(_uuid, mode)
-          when not is_atom(mode) or mode not in @repo_modes,
-          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["mode cannot be nil; mode must be one of #{@repo_modes}"])
+      def get_repo_table_name_by_uuid(id, mode)
 
-      def select_repo_by_uuid(uuid, mode) do
-        {repo_rw, repo_ro} =
-          if @is_db_distributed do
-            [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
-
-            <<_hi_part::64, lo_part::64>> = b
-
-            part = lo_part &&& 0xFF
-
-            {repo_rw, repo_ro} =
-              if part <= 127 do
-                [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
-                {repo_a_rw, repo_a_ro}
-              else
-                [_repo_a, {{repo_b_rw, _}, {repo_b_ro, _}}] = @repos
-                {repo_b_rw, repo_b_ro}
-              end
-
-            {repo_rw, repo_ro}
-          else
-            [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
-
-            {repo_a_rw, repo_a_ro}
-          end
-
-        repo =
-          if mode == :RW do
-            repo_rw
-          else
-            repo_ro
-          end
-
-        {:ok, repo}
-      end
-
-      def select_repo_by_uuid(uuid, mode),
-        do:
-          UniError.raise_error!(
-            :WRONG_ARGUMENT_COMBINATION_ERROR,
-            ["Wrong argument combination"],
-            arguments: %{
-              uuid: uuid,
-              mode: mode
-            }
-          )
-
-      ####################################################################################################################
-      @doc """
-      ### Function
-      """
-      def get_table_postfix_by_uuid(uuid)
-          when not is_bitstring(uuid),
-          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["uuid cannot be nil; uuid must be a string"])
-
-      def get_table_postfix_by_uuid(uuid) do
-        s =
-          if @is_table_distributed do
-            [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
-
-            <<hi_part::64, _lo_part::64>> = b
-
-            part = hi_part &&& 0xFF
-
-            "_#{String.pad_leading("#{part}", 3, "0")}"
-          else
-            ""
-          end
-
-        {:ok, s}
-      end
-
-      def get_table_postfix_by_uuid(uuid),
-        do:
-          UniError.raise_error!(
-            :WRONG_ARGUMENT_COMBINATION_ERROR,
-            ["Wrong argument combination"],
-            arguments: %{
-              uuid: uuid
-            }
-          )
-
-      ####################################################################################################################
-      @doc """
-      ### Function
-      """
-      def prepare_struct(struct, mode, key \\ :id)
-
-      def prepare_struct(struct, mode, key)
-          when not is_struct(struct) or not is_atom(mode) or mode not in @repo_modes or not is_atom(key),
-          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["struct, mode, key cannot be nil; mode, key must be an atom; struct must be a struct; mode must be one of #{@repo_modes}"])
-
-      def prepare_struct(struct, mode, key) do
-        id = Map.get(key, struct, nil)
-
-        {:ok, repo} = select_repo_by_uuid(id, mode)
-        {:ok, postfix} = get_table_postfix_by_uuid(id)
-
-        source = Ecto.get_meta(struct, :source)
-        struct = Ecto.put_meta(struct, :source, "#{source}#{postfix}")
-
-        {:ok, {repo, struct}}
-      end
-
-      def prepare_struct(struct, mode, key),
-        do:
-          UniError.raise_error!(
-            :WRONG_ARGUMENT_COMBINATION_ERROR,
-            ["Wrong argument combination"],
-            arguments: %{
-              struct: struct,
-              mode: mode,
-              key: key
-            }
-          )
-
-      ####################################################################################################################
-      @doc """
-      ### Function
-      """
-      def get_repo_table_name(id, mode)
-
-      def get_repo_table_name(id, mode)
+      def get_repo_table_name_by_uuid(id, mode)
           when not is_bitstring(id) or not is_atom(mode) or mode not in @repo_modes,
           do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["id, mode cannot be nil; mode must be an atom; mode must be one of #{@repo_modes}"])
 
-      def get_repo_table_name(id, mode) do
+      def get_repo_table_name_by_uuid(id, mode) do
         table_name = Ecto.get_meta(%__MODULE__{}, :source)
-        {:ok, postfix} = get_table_postfix_by_uuid(id)
+        {:ok, postfix} = PostgresiarRepo.get_table_postfix_by_uuid(id)
         table_name = "#{table_name}#{postfix}"
 
-        {:ok, repo} = select_repo_by_uuid(id, mode)
+        {:ok, repo} = PostgresiarRepo.select_repo_by_uuid(id, mode)
 
         {:ok, {repo, table_name}}
       end
 
-      def get_repo_table_name(id, mode),
+      def get_repo_table_name_by_uuid(id, mode),
         do:
           UniError.raise_error!(
             :WRONG_ARGUMENT_COMBINATION_ERROR,
@@ -361,16 +238,13 @@ defmodule Postgresiar.Schema do
       @doc """
       Get by query
       """
-      def preload!(struct_or_structs_or_nil, preloads, opts \\ [])
+      def preload!(struct_or_structs_or_nil, preloads, opts \\ [], repo \\ @default_ro_repo)
 
-      def preload!(struct_or_structs_or_nil, preloads, opts) when is_struct(struct_or_structs_or_nil) do
-        key = opts[:uuid_key] || :id
-        {:ok, {repo, struct_or_structs_or_nil}} = prepare_struct(struct_or_structs_or_nil, :RO, key)
-
+      def preload!(struct_or_structs_or_nil, preloads, opts, repo) when is_struct(struct_or_structs_or_nil) do
         apply(repo, :preload!, [struct_or_structs_or_nil, preloads, opts])
       end
 
-      def preload!(struct_or_structs_or_nil, preloads, opts),
+      def preload!(struct_or_structs_or_nil, preloads, opts, repo),
         do:
           UniError.raise_error!(
             :WRONG_ARGUMENT_COMBINATION_ERROR,
@@ -378,6 +252,7 @@ defmodule Postgresiar.Schema do
             arguments: %{
               struct_or_structs_or_nil: struct_or_structs_or_nil,
               preloads: preloads,
+              repo: repo,
               opts: opts
             }
           )
@@ -390,16 +265,18 @@ defmodule Postgresiar.Schema do
 
       def insert(obj, opts, async, rescue_func, rescue_func_args, module) do
         key = opts[:uuid_key] || :id
-        {:ok, {repo, obj}} = prepare_struct(obj, :RW, key)
+
+        uuid = Map.fetch!(obj, key)
+        {:ok, repo} = PostgresiarRepo.select_repo_by_uuid(uuid, :RW)
 
         changeset = __MODULE__.insert_changeset(%__MODULE__{}, obj)
 
         if async do
           # @repo.insert_record_async(changeset, rescue_func, rescue_func_args, module)
-          apply(repo, :insert_record_async, [changeset, rescue_func, rescue_func_args, module])
+          apply(repo, :insert_record_async, [changeset, opts, rescue_func, rescue_func_args, module])
         else
           # @repo.insert_record!(changeset)
-          apply(repo, :insert_record!, [changeset])
+          apply(repo, :insert_record!, [changeset, opts])
         end
       end
 
@@ -411,16 +288,18 @@ defmodule Postgresiar.Schema do
 
       def update(obj, opts, async, rescue_func, rescue_func_args, module) do
         key = opts[:uuid_key] || :id
-        {:ok, {repo, obj}} = prepare_struct(obj, :RW, key)
+
+        uuid = Map.fetch!(obj, key)
+        {:ok, repo} = PostgresiarRepo.select_repo_by_uuid(uuid, :RW)
 
         changeset = __MODULE__.update_changeset(%__MODULE__{id: obj.id}, obj)
 
         if async do
           # @repo.update_record_async(changeset, rescue_func, rescue_func_args, module)
-          apply(repo, :update_record_async, [changeset, rescue_func, rescue_func_args, module])
+          apply(repo, :update_record_async, [changeset, opts, rescue_func, rescue_func_args, module])
         else
           # @repo.update_record!(changeset)
-          apply(repo, :update_record!, [changeset])
+          apply(repo, :update_record!, [changeset, opts])
         end
       end
 
@@ -445,6 +324,47 @@ defmodule Postgresiar.Schema do
       #      end
     end
   end
+
+  def create_tables(app_with_dbo, dbo_modules_prefix)
+      when not is_atom(app_with_dbo) or not is_bitstring(dbo_modules_prefix),
+      do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["app_with_dbo, dbo_modules_prefix cannot be nil; app_with_dbo must be an atom; dbo_modules_prefix must be a string"])
+
+  def create_tables(app_with_dbo, dbo_modules_prefix) do
+    {:ok, modules_list} = :application.get_key(app_with_dbo, :modules)
+
+    dbo_modules =
+      Enum.reduce(
+        modules_list,
+        [],
+        fn module, accum ->
+          if String.starts_with?("#{module}", dbo_modules_prefix) do
+            accum ++ [module]
+          else
+            accum
+          end
+        end
+      )
+
+    result =
+      Enum.reduce(
+        dbo_modules,
+        [],
+        fn module, accum ->
+          accum ++ [apply(module, :create_tables, [])]
+        end
+      )
+  end
+
+  def create_tables(app_with_dbo, dbo_modules_prefix),
+    do:
+      UniError.raise_error!(
+        :WRONG_ARGUMENT_COMBINATION_ERROR,
+        ["Wrong argument combination"],
+        arguments: %{
+          app_with_dbo: app_with_dbo,
+          dbo_modules_prefix: dbo_modules_prefix
+        }
+      )
 
   ####################################################################################################################
   ####################################################################################################################

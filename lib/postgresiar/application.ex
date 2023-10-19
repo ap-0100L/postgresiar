@@ -32,9 +32,10 @@ defmodule Postgresiar.Application do
     {:ok, repos} = Postgresiar.build_child_spec_list()
 
     result =
-      [
-        {PostgresiarWorker, strategy: :one_for_one, restart: :permanent, name: PostgresiarWorker.get_genserver_name()}
-      ] ++ repos
+      repos ++
+        [
+          {PostgresiarWorker, strategy: :one_for_one, restart: :permanent, name: PostgresiarWorker.get_genserver_name()}
+        ]
 
     {:ok, result}
   end
@@ -49,14 +50,6 @@ defmodule Postgresiar.Application do
     {:ok, opts} = get_opts()
 
     Supervisor.start_link(children, opts)
-  end
-
-  ####################################################################################################################
-  @doc """
-  ### Function.
-  """
-  def get_dynamic_supervisor_name() do
-    @dynamic_supervisor_name
   end
 
   ####################################################################################################################

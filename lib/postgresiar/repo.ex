@@ -6,6 +6,11 @@ defmodule Postgresiar.Repo do
   """
 
   use Utils
+  use Bitwise, only_operators: true
+
+  @repo_modes [:RW, :RO]
+
+  @repos Application.get_env(:postgresiar, :repos)
 
   ####################################################################################################################
   @doc """
@@ -29,6 +34,8 @@ defmodule Postgresiar.Repo do
         otp_app: @otp_app,
         adapter: Ecto.Adapters.Postgres,
         read_only: @read_only
+
+      @repo_modes [:RW, :RO]
 
       use Utils
 
@@ -59,6 +66,40 @@ defmodule Postgresiar.Repo do
       def set_search_path(conn, path) do
         {:ok, _result} = Postgrex.query(conn, "SET search_path=#{path}", [])
       end
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def prepare_struct(struct, mode, key \\ :id)
+
+      def prepare_struct(struct, mode, key)
+          when not is_struct(struct) or not is_atom(mode) or mode not in @repo_modes or not is_atom(key),
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["struct, mode, key cannot be nil; mode, key must be an atom; struct must be a struct; mode must be one of #{@repo_modes}"])
+
+      def prepare_struct(struct, mode, key) do
+        id = Map.get(key, struct, nil)
+
+        {:ok, repo} = PostgresiarRepo.select_repo_by_uuid(id, mode)
+        {:ok, postfix} = PostgresiarRepo.get_table_postfix_by_uuid(id)
+
+        source = Ecto.get_meta(struct, :source)
+        struct = Ecto.put_meta(struct, :source, "#{source}#{postfix}")
+
+        {:ok, {repo, struct}}
+      end
+
+      def prepare_struct(struct, mode, key),
+        do:
+          UniError.raise_error!(
+            :WRONG_ARGUMENT_COMBINATION_ERROR,
+            ["Wrong argument combination"],
+            arguments: %{
+              struct: struct,
+              mode: mode,
+              key: key
+            }
+          )
 
       ####################################################################################################################
       @doc """
@@ -201,13 +242,18 @@ defmodule Postgresiar.Repo do
       def preload!(struct_or_structs_or_nil, preloads, opts) do
         result =
           UniError.rescue_error!(
-            if @disable_rpc do
-              # apply(__MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
-              preload(struct_or_structs_or_nil, preloads, opts)
-            else
-              {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
-              RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
-            end
+            (
+              key = opts[:uuid_key] || :id
+              {:ok, {repo, struct_or_structs_or_nil}} = prepare_struct(struct_or_structs_or_nil, :RO, key)
+
+              if @disable_rpc do
+                # apply(__MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
+                preload(struct_or_structs_or_nil, preloads, opts)
+              else
+                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
+              end
+            )
           )
 
         result =
@@ -231,17 +277,24 @@ defmodule Postgresiar.Repo do
         @doc """
         Insert
         """
-        def insert_record!(obj) do
+        def insert_record!(obj, opts \\ [])
+
+        def insert_record!(obj, opts) do
           result =
             UniError.rescue_error!(
-              if @disable_rpc do
-                # apply(__MODULE__, :insert, [obj])
-                insert(obj)
-              else
-                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+              (
+                key = opts[:uuid_key] || :id
+                {:ok, {repo, obj}} = prepare_struct(obj, :RW, key)
 
-                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :insert, [obj])
-              end
+                if @disable_rpc do
+                  # apply(__MODULE__, :insert, [obj, opts])
+                  insert(obj, opts)
+                else
+                  {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+
+                  RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :insert, [obj, opts])
+                end
+              )
             )
 
           result =
@@ -271,9 +324,9 @@ defmodule Postgresiar.Repo do
         @doc """
         Insert async
         """
-        def insert_record_async(obj, rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
+        def insert_record_async(obj, opts \\ [], rescue_func \\ nil, rescue_func_args \\ [], module \\ nil)
 
-        def insert_record_async(obj, rescue_func, rescue_func_args, module) do
+        def insert_record_async(obj, opts, rescue_func, rescue_func_args, module) do
           func = fn ->
             # :timer.sleep(20000)
             {reraise, log_error} =
@@ -283,7 +336,7 @@ defmodule Postgresiar.Repo do
                 {false, false}
               end
 
-            UniError.rescue_error!(__MODULE__.insert_record!(obj), reraise, log_error, rescue_func, rescue_func_args, module)
+            UniError.rescue_error!(__MODULE__.insert_record!(obj, opts), reraise, log_error, rescue_func, rescue_func_args, module)
           end
 
           pid = spawn(func)
@@ -295,17 +348,24 @@ defmodule Postgresiar.Repo do
         @doc """
         Update
         """
-        def update_record!(obj) do
+        def update_record!(obj, opts \\ [])
+
+        def update_record!(obj, opts) do
           result =
             UniError.rescue_error!(
-              if @disable_rpc do
-                # apply(__MODULE__, :update, [obj])
-                update(obj)
-              else
-                {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+              (
+                key = opts[:uuid_key] || :id
+                {:ok, {repo, obj}} = prepare_struct(obj, :RW, key)
 
-                RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :update, [obj])
-              end
+                if @disable_rpc do
+                  # apply(__MODULE__, :update, [obj])
+                  update(obj, opts)
+                else
+                  {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
+
+                  RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :update, [obj, opts])
+                end
+              )
             )
 
           result =
@@ -358,6 +418,95 @@ defmodule Postgresiar.Repo do
       end
     end
   end
+
+  ####################################################################################################################
+  @doc """
+  ### Function
+  """
+  def select_repo_by_uuid(_uuid, mode)
+      when not is_atom(mode) or mode not in @repo_modes,
+      do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["mode cannot be nil; mode must be one of #{@repo_modes}"])
+
+  def select_repo_by_uuid(uuid, mode) do
+    {repo_rw, repo_ro} =
+      if @is_db_distributed do
+        [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
+
+        <<_hi_part::64, lo_part::64>> = b
+
+        part = lo_part &&& 0xFF
+
+        {repo_rw, repo_ro} =
+          if part <= 127 do
+            [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
+            {repo_a_rw, repo_a_ro}
+          else
+            [_repo_a, {{repo_b_rw, _}, {repo_b_ro, _}}] = @repos
+            {repo_b_rw, repo_b_ro}
+          end
+
+        {repo_rw, repo_ro}
+      else
+        [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
+
+        {repo_a_rw, repo_a_ro}
+      end
+
+    repo =
+      if mode == :RW do
+        repo_rw
+      else
+        repo_ro
+      end
+
+    {:ok, repo}
+  end
+
+  def select_repo_by_uuid(uuid, mode),
+    do:
+      UniError.raise_error!(
+        :WRONG_ARGUMENT_COMBINATION_ERROR,
+        ["Wrong argument combination"],
+        arguments: %{
+          uuid: uuid,
+          mode: mode
+        }
+      )
+
+  ####################################################################################################################
+  @doc """
+  ### Function
+  """
+  def get_table_postfix_by_uuid(uuid)
+      when not is_bitstring(uuid),
+      do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["uuid cannot be nil; uuid must be a string"])
+
+  def get_table_postfix_by_uuid(uuid) do
+    s =
+      if @is_table_distributed do
+        [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
+
+        <<hi_part::64, _lo_part::64>> = b
+
+        part = hi_part &&& 0xFF
+
+        "_#{String.pad_leading("#{part}", 3, "0")}"
+      else
+        ""
+      end
+
+    {:ok, s}
+  end
+
+  def get_table_postfix_by_uuid(uuid),
+    do:
+      UniError.raise_error!(
+        :WRONG_ARGUMENT_COMBINATION_ERROR,
+        ["Wrong argument combination"],
+        arguments: %{
+          uuid: uuid
+        }
+      )
 
   ####################################################################################################################
   ####################################################################################################################
