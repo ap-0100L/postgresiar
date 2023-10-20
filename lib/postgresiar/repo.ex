@@ -39,7 +39,6 @@ defmodule Postgresiar.Repo do
 
       use Utils
 
-      alias Utils, as: Utils
       alias Postgresiar.Repo, as: PostgresiarRepo
 
       @behaviour PostgresiarRepo
@@ -379,28 +378,19 @@ defmodule Postgresiar.Repo do
       do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["mode cannot be nil; mode must be one of #{@repo_modes}"])
 
   def select_repo_by_uuid(uuid, mode) do
+    [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
+
+    <<_hi_part::64, lo_part::64>> = b
+
+    part = lo_part &&& 0xFF
+
     {repo_rw, repo_ro} =
-      if @is_db_distributed do
-        [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
-
-        <<_hi_part::64, lo_part::64>> = b
-
-        part = lo_part &&& 0xFF
-
-        {repo_rw, repo_ro} =
-          if part <= 127 do
-            [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
-            {repo_a_rw, repo_a_ro}
-          else
-            [_repo_a, {{repo_b_rw, _}, {repo_b_ro, _}}] = @repos
-            {repo_b_rw, repo_b_ro}
-          end
-
-        {repo_rw, repo_ro}
-      else
+      if part <= 127 do
         [{{repo_a_rw, _}, {repo_a_ro, _}}, _repo_b] = @repos
-
         {repo_a_rw, repo_a_ro}
+      else
+        [_repo_a, {{repo_b_rw, _}, {repo_b_ro, _}}] = @repos
+        {repo_b_rw, repo_b_ro}
       end
 
     repo =
@@ -433,14 +423,13 @@ defmodule Postgresiar.Repo do
       do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["uuid cannot be nil; uuid must be a string"])
 
   def get_table_postfix_by_uuid(uuid) do
-    s =
-      [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
+    [_a, {:binary, b}, _c, _d, _e] = UUID.info!(uuid)
 
     <<hi_part::64, _lo_part::64>> = b
 
     part = hi_part &&& 0xFF
 
-    "_#{String.pad_leading("#{part}", 3, "0")}"
+    s = "_#{String.pad_leading("#{part}", 3, "0")}"
 
     {:ok, s}
   end

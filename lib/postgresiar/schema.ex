@@ -22,7 +22,7 @@ defmodule Postgresiar.Schema do
   """
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
-      import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3]
+      import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3, select: 3]
       import Ecto.Query.API, only: [fragment: 1]
 
       @is_db_distributed opts[:is_db_distributed] || false
@@ -31,8 +31,6 @@ defmodule Postgresiar.Schema do
       @sql_create_table opts[:sql_create_table] || nil
 
       @auto_create opts[:auto_create] || ((@is_db_distributed or @is_table_distributed) and not is_nil(@sql_create_table))
-
-      @repo_modes [:RW, :RO]
 
       @repos Application.get_env(:postgresiar, :repos)
 
@@ -174,11 +172,9 @@ defmodule Postgresiar.Schema do
       @doc """
       ### Function
       """
-      def get_repo_table_name_by_uuid(id, mode)
-
-      def get_repo_table_name_by_uuid(id, mode)
-          when not is_bitstring(id) or not is_atom(mode) or mode not in @repo_modes,
-          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["id, mode cannot be nil; mode must be an atom; mode must be one of #{@repo_modes}"])
+      def get_repo_table_name_by_uuid(id, _mode)
+          when not is_bitstring(id),
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["id, mode cannot be nil; id must be a string"])
 
       def get_repo_table_name_by_uuid(id, mode) do
         table_name = Ecto.get_meta(%__MODULE__{}, :source)
@@ -212,13 +208,29 @@ defmodule Postgresiar.Schema do
 
             source = Ecto.get_meta(model, :source)
             model = Ecto.put_meta(model, source: "#{source}#{postfix}")
-
           else
             model
           end
 
         {:ok, model}
       end
+
+
+
+      ####################################################################################################################
+      @doc """
+      ### Function
+      """
+      def get_query(table_name) do
+          %Ecto.Query{
+            from: %Ecto.Query.FromExpr{
+              source: {table_name, __MODULE__},
+              prefix: @schema_prefix
+            }
+          }
+      end
+
+
 
       ####################################################################################################################
       @doc """
@@ -289,7 +301,6 @@ defmodule Postgresiar.Schema do
         {:ok, repo} = PostgresiarRepo.select_repo_by_uuid(uuid, :RW)
 
         {:ok, model} = prepare_model(%__MODULE__{}, uuid)
-        IO.inspect(model, label: "[QQQQQQQQQQQQQQQQQQ03][model]")
 
         changeset = __MODULE__.insert_changeset(model, obj)
 
