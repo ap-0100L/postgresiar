@@ -80,7 +80,9 @@ defmodule Postgresiar do
       (
         Utils.ensure_all_started!([:inets, :ssl])
 
-        PostgresiarSchema.create_tables(:api_core, "Elixir.ApiCore.Db.Persistent.Dao")
+        {:ok, dbo_modules_prefix} = get_app_env(:dbo_modules_prefix)
+
+        PostgresiarSchema.create_tables(:api_core, dbo_modules_prefix)
 
         Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Postgresiar started successfully")
       )
