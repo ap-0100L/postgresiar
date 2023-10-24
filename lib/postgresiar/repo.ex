@@ -55,7 +55,7 @@ defmodule Postgresiar.Repo do
           Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I completed #{__MODULE__} init part, context: #{inspect(context)}, config: #{inspect(config)}")
         end
 
-        {:ok, config}
+        {:ok, put_in(config, [:parameters, :application_name], Node.self |> to_string)}
       end
 
       ####################################################################################################################
