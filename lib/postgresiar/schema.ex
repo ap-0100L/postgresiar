@@ -22,7 +22,7 @@ defmodule Postgresiar.Schema do
   """
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
-      import Ecto.Query, only: [from: 2, where: 3, limit: 3, offset: 3, order_by: 3, select: 3]
+      import Ecto.Query, only: [from: 1, from: 2, where: 3, limit: 3, offset: 3, order_by: 3, select: 3]
       import Ecto.Query.API, only: [fragment: 1]
 
       @is_db_distributed opts[:is_db_distributed] || false
@@ -50,7 +50,7 @@ defmodule Postgresiar.Schema do
         pg_tables
       WHERE
         schemaname = 'germes' AND
-        tablename  = $1
+        tablename = $1
       );
       """
 
@@ -83,10 +83,21 @@ defmodule Postgresiar.Schema do
       ### Function
       """
       def create_table(repo, table_name)
-          when not is_atom(repo) or not is_bitstring(table_name),
-          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["repo, table_name cannot be nil; repo must be an atom; table_name must be a string"])
+          when not is_atom(repo) or (not is_bitstring(table_name) and not is_list(table_name)),
+          do: UniError.raise_error!(:WRONG_FUNCTION_ARGUMENT_ERROR, ["repo, table_name cannot be nil; repo must be an atom; table_name must be a string or list of strings"])
 
-      def create_table(repo, table_name) do
+      def create_table(repo, table_names) when is_list(table_names) do
+        Enum.each(
+          table_names,
+          fn table_name ->
+            create_table(repo, table_name)
+          end
+        )
+
+        {:ok, true}
+      end
+
+      def create_table(repo, table_name) when is_bitstring(table_name) do
         {:ok, [[table_exists]]} = apply(repo, :exec_query, [@sql_find_table_by_name, [table_name]])
 
         if table_exists do
@@ -134,26 +145,36 @@ defmodule Postgresiar.Schema do
         ids = 0..255
         table_name = Ecto.get_meta(%__MODULE__{}, :source)
 
+        table_names =
+          if @is_table_distributed do
+            table_names =
+              for id <- ids do
+                table_name_postfix = "_#{String.pad_leading("#{id}", 3, "0")}"
+                table_name = table_name <> table_name_postfix
+                table_name
+              end
+          end
+
         cond do
           @is_db_distributed and @is_table_distributed ->
             # All repos, many tables
-            for id <- ids do
-              table_name_postfix = "_#{String.pad_leading("#{id}", 3, "0")}"
+            for {{repo_rw, _}, _} <- @repos do
+              q = from(a in "pg_tables", where: a.schemaname == ^"germes" and a.tablename in ^table_names, select: a.tablename)
+              table_names_exists = apply(repo_rw, :all, [q, []])
+              table_names = table_names -- table_names_exists
+              Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Tables [#{inspect(table_names)}] will be create in repo #{inspect(repo_rw)}")
 
-              for {{repo_rw, _}, _} <- @repos do
-                table_name = table_name <> table_name_postfix
-                {:ok, true} = create_table(repo_rw, table_name)
-              end
+              {:ok, true} = create_table(repo_rw, table_names)
             end
 
           not @is_db_distributed and @is_table_distributed ->
             # One repo, many tables
-            for id <- ids do
-              table_name_postfix = "_#{String.pad_leading("#{id}", 3, "0")}"
+            q = from(a in "pg_tables", where: a.schemaname == ^"germes" and a.tablename in ^table_names, select: a.tablename)
+            table_names_exists = apply(@default_rw_repo, :all, [q, []])
+            table_names = table_names -- table_names_exists
+            Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Tables [#{inspect(table_names)}] will be create in repo #{inspect(@default_rw_repo)}")
 
-              table_name = table_name <> table_name_postfix
-              {:ok, true} = create_table(@default_rw_repo, table_name)
-            end
+            {:ok, true} = create_table(@default_rw_repo, table_names)
 
           @is_db_distributed and not @is_table_distributed ->
             # All repos, one table
@@ -215,22 +236,18 @@ defmodule Postgresiar.Schema do
         {:ok, model}
       end
 
-
-
       ####################################################################################################################
       @doc """
       ### Function
       """
       def get_query(table_name) do
-          %Ecto.Query{
-            from: %Ecto.Query.FromExpr{
-              source: {table_name, __MODULE__},
-              prefix: @schema_prefix
-            }
+        %Ecto.Query{
+          from: %Ecto.Query.FromExpr{
+            source: {table_name, __MODULE__},
+            prefix: @schema_prefix
           }
+        }
       end
-
-
 
       ####################################################################################################################
       @doc """
