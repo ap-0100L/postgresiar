@@ -24,7 +24,7 @@ defmodule Postgresiar.MixProject do
       # Start only this apps automatically
       # applications: [],
       # A list of OTP applications your application depends on which are not included in :deps
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :logger_file_backend, :runtime_tools]
     ]
   end
 
@@ -44,6 +44,8 @@ defmodule Postgresiar.MixProject do
       {:ecto_sql, "~> 3.9.1"},
       {:postgrex, "~> 0.16.5"},
       {:ecto_enum, "~> 1.4"},
+      #
+      {:logger_file_backend, "~> 0.0.13"},
       #
       {:utils, in_umbrella: true}
     ]
