@@ -322,6 +322,13 @@ defmodule Postgresiar.Schema do
         changeset = __MODULE__.insert_changeset(model, obj)
 
         if async do
+          {:ok, random_sleep} = Utils.get_app_env(:postgresiar, :async_insert_random_sleep)
+
+          if random_sleep >= 10 do
+            async_insert_random_sleep = :rand.uniform(random_sleep)
+            Process.sleep(async_insert_random_sleep)
+          end
+
           # @repo.insert_record_async(changeset, rescue_func, rescue_func_args, module)
           apply(repo, :insert_record_async, [changeset, opts, rescue_func, rescue_func_args, module])
         else
