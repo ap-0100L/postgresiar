@@ -101,9 +101,9 @@ defmodule Postgresiar.Schema do
         {:ok, [[table_exists]]} = apply(repo, :exec_query, [@sql_find_table_by_name, [table_name]])
 
         if table_exists do
-          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] does exists")
+          Logger.debug("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] does exists")
         else
-          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] does not exists")
+          Logger.debug("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] does not exists")
           sql_create_table = String.replace(@sql_create_table, "{#}", table_name)
 
           sqls = String.split(sql_create_table, ";", trim: true)
@@ -112,7 +112,7 @@ defmodule Postgresiar.Schema do
             {:ok, result} = apply(repo, :exec_query, [sql, []])
           end
 
-          Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] created successfully")
+          Logger.debug("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] Table [#{table_name}] in repo RW [#{inspect(repo)}] created successfully")
         end
 
         {:ok, true}
