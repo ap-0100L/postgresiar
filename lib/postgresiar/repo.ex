@@ -55,7 +55,7 @@ defmodule Postgresiar.Repo do
           Logger.info("[#{inspect(__MODULE__)}][#{inspect(__ENV__.function)}] I completed #{__MODULE__} init part, context: #{inspect(context)}, config: #{inspect(config)}")
         end
 
-        {:ok, put_in(config, [:parameters, :application_name], Node.self |> to_string)}
+        {:ok, put_in(config, [:parameters, :application_name], Node.self() |> to_string)}
       end
 
       ####################################################################################################################
@@ -84,7 +84,9 @@ defmodule Postgresiar.Repo do
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
               RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :query, [query, params, opts])
-            end
+            end,
+            false,
+            false
           )
 
         result =
@@ -135,7 +137,9 @@ defmodule Postgresiar.Repo do
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
               RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :transaction, [fun_or_multi, opts])
-            end
+            end,
+            false,
+            false
           )
 
         result =
@@ -176,7 +180,9 @@ defmodule Postgresiar.Repo do
             else
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
               RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :all, [query, opts])
-            end
+            end,
+            false,
+            false
           )
 
         result =
@@ -213,7 +219,9 @@ defmodule Postgresiar.Repo do
             else
               {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
               RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :preload, [struct_or_structs_or_nil, preloads, opts])
-            end
+            end,
+            false,
+            false
           )
 
         result =
@@ -249,7 +257,9 @@ defmodule Postgresiar.Repo do
                 {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :insert, [obj, opts])
-              end
+              end,
+              false,
+              false
             )
 
           result =
@@ -315,7 +325,9 @@ defmodule Postgresiar.Repo do
                 {:ok, remote_node_name_prefixes} = Utils.get_app_env(:postgresiar, :remote_node_name_prefixes)
 
                 RPCUtils.call_local_or_rpc(remote_node_name_prefixes, __MODULE__, :update, [obj, opts])
-              end
+              end,
+              false,
+              false
             )
 
           result =
